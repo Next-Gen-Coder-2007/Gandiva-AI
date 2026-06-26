@@ -1,0 +1,19 @@
+{
+  "name": "gandiva-ai",
+  "version": "1.0.0",
+  "description": "An AI-powered career acceleration platform that helps students become placement-ready through:",
+  "main": "index.js",
+  "scripts": {
+    "frontend": "cd frontend && npm run dev"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Next-Gen-Coder-2007/Gandiva-AI.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Next-Gen-Coder-2007/Gandiva-AI/issues"
+  },
+  "homepage": "https://github.com/Next-Gen-Coder-2007/Gandiva-AI#readme"
+}
