@@ -4,6 +4,7 @@ import useLenis from './hooks/useLenis';
 import { ThemeProvider } from './context/ThemeContext';
 import NotFound from './pages/NotFound';
 import Login from './pages/Login';
+import Register from './pages/Register';
 
 function App() {
   useLenis();
@@ -14,6 +15,7 @@ function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>
