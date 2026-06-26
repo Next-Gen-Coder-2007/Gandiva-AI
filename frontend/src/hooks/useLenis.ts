@@ -8,6 +8,7 @@ const useLenis = (): void => {
       smoothWheel: true,
       wheelMultiplier: 1,
       touchMultiplier: 2,
+      syncTouch: false,
     });
 
     let frameId: number;
