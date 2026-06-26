@@ -1,0 +1,36 @@
+@import 'tailwindcss';
+
+:root {
+  color-scheme: light;
+  --scrollbar-track: #f4f4f5;
+  --scrollbar-thumb: linear-gradient(180deg, #22c55e, #16a34a);
+  --scrollbar-thumb-hover: linear-gradient(180deg, #4ade80, #22c55e);
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --scrollbar-track: #09090b;
+  --scrollbar-thumb: linear-gradient(180deg, #4ade80, #22c55e);
+  --scrollbar-thumb-hover: linear-gradient(180deg, #86efac, #4ade80);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+html {
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
