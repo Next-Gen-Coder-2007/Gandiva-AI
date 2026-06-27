@@ -4,7 +4,8 @@
   "description": "An AI-powered career acceleration platform that helps students become placement-ready through:",
   "main": "index.js",
   "scripts": {
-    "frontend": "cd frontend && npm run dev"
+    "frontend": "cd frontend && npm run dev",
+    "backend": "cd backend && python -m uvicorn main:app --reload"
   },
   "repository": {
     "type": "git",

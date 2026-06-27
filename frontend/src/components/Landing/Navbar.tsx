@@ -122,6 +122,12 @@ const Navbar = () => {
             >
               Tech Stack
             </button>
+            <button
+              onClick={() => handleScrollTo("#contact")}
+              className={`text-left hover:text-green-500 transition-colors ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}
+            >
+              Contact Us
+            </button>
             
             <div className="h-px w-full bg-zinc-200 dark:bg-zinc-800 my-2"></div>
             
