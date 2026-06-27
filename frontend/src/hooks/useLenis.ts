@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import Lenis from "lenis";
 
+export let lenisInstance: Lenis | null = null;
+
 const useLenis = (): void => {
   useEffect(() => {
     const lenis = new Lenis({
@@ -10,6 +12,8 @@ const useLenis = (): void => {
       touchMultiplier: 2,
       syncTouch: false,
     });
+
+    lenisInstance = lenis;
 
     let frameId: number;
 

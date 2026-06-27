@@ -21,7 +21,6 @@ const Hero = () => {
   return (
     <div className={`relative overflow-hidden font-sans transition-colors duration-300 ${isDark ? 'bg-black text-zinc-100' : 'bg-zinc-50 text-zinc-900'}`}>
       
-      {/* Custom Keyframes for Continuous Floating */}
       <style>{`
         @keyframes float-orb {
           0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
@@ -61,14 +60,11 @@ const Hero = () => {
         .anim-float-icon { animation: float-icon 3s ease-in-out infinite; }
       `}</style>
 
-      {/* Parallax Background Grid */}
       <div 
         style={{ transform: `translateY(${scrollY * 0.15}px)` }}
         className="absolute inset-0 bg-[radial-gradient(#22c55e15_1px,transparent_1px)] [background-size:24px_24px] opacity-60 transition-transform duration-75 ease-out"
       />
       
-      {/* Animated Parallax Glow Orb */}
-      {/* Note: The orb uses fixed positioning math natively in CSS, so parallax is applied to a wrapper */}
       <div 
         style={{ transform: `translateY(${scrollY * 0.12}px)` }}
         className="absolute top-1/2 left-1/2 w-full h-full pointer-events-none transition-transform duration-75 ease-out"
@@ -76,9 +72,8 @@ const Hero = () => {
         <div className="absolute top-0 left-1/2 w-[600px] h-[600px] bg-green-500/10 rounded-full blur-[120px] anim-float-orb" />
       </div>
 
-      <main className="relative z-10 flex flex-col items-center justify-center py-24 px-4 min-h-[calc(100vh-80px)]">
+      <main className="relative z-10 flex flex-col items-center justify-center px-4 pt-0 pb-16 min-h-[95vh]">
         
-        {/* Central Logo / Pulse Icon */}
         <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-8 shadow-2xl transition-all duration-1000 ${isDark ? 'bg-zinc-900 border border-zinc-800 shadow-green-900/20' : 'bg-white border border-zinc-200 shadow-green-200/40'}`}>
           <div className="grid grid-cols-2 gap-1.5">
             <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse"></div>
@@ -88,7 +83,6 @@ const Hero = () => {
           </div>
         </div>
 
-        {/* Hero Content */}
         <div className="text-center max-w-4xl mx-auto z-20">
           <div className={`inline-block mb-4 px-3 py-1 rounded-full border text-xs font-semibold tracking-wide ${isDark ? 'bg-zinc-900 border-zinc-800 text-green-400' : 'bg-white border-zinc-200 text-green-600'}`}>
             100% Free & Built for Students
@@ -108,10 +102,6 @@ const Hero = () => {
           </Link>
         </div>
 
-        {/* --- Floating Background Components --- */}
-        {/* Outer divs handle the Parallax scroll translation. Inner divs handle the continuous CSS animation. */}
-
-        {/* ATS Score Sticky Note */}
         <div 
           style={{ transform: `translateY(${scrollY * -0.25}px)` }} 
           className="hidden lg:flex absolute top-16 left-[10%] z-0 transition-transform duration-75 ease-out"
@@ -124,7 +114,6 @@ const Hero = () => {
           </div>
         </div>
 
-        {/* Readiness Score */}
         <div 
           style={{ transform: `translateY(${scrollY * 0.12}px)` }} 
           className="hidden lg:flex absolute top-48 left-[18%] z-0 transition-transform duration-75 ease-out"
@@ -140,7 +129,6 @@ const Hero = () => {
           </div>
         </div>
 
-        {/* Up Next Card */}
         <div 
           style={{ transform: `translateY(${scrollY * -0.1}px)` }} 
           className="hidden lg:block absolute top-24 right-[12%] z-0 transition-transform duration-75 ease-out"
@@ -162,7 +150,6 @@ const Hero = () => {
           </div>
         </div>
 
-        {/* Skill Gap Analysis */}
         <div 
           style={{ transform: `translateY(${scrollY * 0.2}px)` }} 
           className="hidden lg:block absolute bottom-24 left-[12%] z-0 transition-transform duration-75 ease-out"
@@ -192,7 +179,6 @@ const Hero = () => {
           </div>
         </div>
 
-        {/* Tailored Roles Icons */}
         <div 
           style={{ transform: `translateY(${scrollY * -0.2}px)` }} 
           className="hidden lg:block absolute bottom-32 right-[15%] z-0 transition-transform duration-75 ease-out"

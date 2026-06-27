@@ -1,4 +1,12 @@
-# **Gandiva AI**
+<p align="center">
+  <img src="./frontend/public/logo.png" width="180"/>
+</p>
+
+<h1 align="center">Gandiva AI</h1>
+
+<p align="center">
+  AI-powered career acceleration platform
+</p>
 
 ### Product Vision
 

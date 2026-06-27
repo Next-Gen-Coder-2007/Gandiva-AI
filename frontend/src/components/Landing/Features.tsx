@@ -37,21 +37,18 @@ const features = [
 
 const Features = () => {
   const { isDark } = useTheme();
-  
-  // Refs
+
   const containerRef = useRef<HTMLDivElement>(null);
   const animatedPathRef = useRef<SVGPathElement>(null);
   const dotsRef = useRef<(HTMLDivElement | null)[]>([]);
-  
-  // State
+
   const [pathData, setPathData] = useState<string>('');
   const [visibleItems, setVisibleItems] = useState<Set<number>>(new Set());
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
-  // 1. Calculate a Smooth, Wide S-Curve
   const calculatePath = useCallback(() => {
     if (!containerRef.current || dotsRef.current.length === 0) return;
-    
+
     const containerRect = containerRef.current.getBoundingClientRect();
     const points: { x: number, y: number }[] = [];
 
@@ -71,7 +68,7 @@ const Features = () => {
     for (let i = 1; i < points.length; i++) {
       const prev = points[i - 1];
       const curr = points[i];
-      
+
       const midY = (prev.y + curr.y) / 2;
       d += ` C ${prev.x} ${midY}, ${curr.x} ${midY}, ${curr.x} ${curr.y}`;
     }
@@ -87,60 +84,54 @@ const Features = () => {
     }, 50);
   }, []);
 
-  // Recalculate curve on mount and resize (with debounce for accurate layout reads)
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout>;
-    
+
     const handleResize = () => {
-      // Clear mobile-only popups when scaling up to desktop
       if (window.innerWidth >= 768) {
         setActiveIndex(null);
       }
-      
-      // Debounce the path calculation so the DOM has time to shift layouts first
+
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
         calculatePath();
-      }, 150); 
+      }, 150);
     };
 
     window.addEventListener('resize', handleResize);
-    calculatePath(); // Initial calculation
-    
+    calculatePath();
+
     return () => {
       window.removeEventListener('resize', handleResize);
       clearTimeout(timeoutId);
     };
   }, [calculatePath]);
 
-  // 2. High-Performance Scroll Listener
   useEffect(() => {
     const handleScroll = () => {
       if (!containerRef.current || !animatedPathRef.current) return;
-      
+
       requestAnimationFrame(() => {
         const rect = containerRef.current!.getBoundingClientRect();
         const windowHeight = window.innerHeight;
+
+        const scrollStart = windowHeight * 0.6; 
         
-        const scrollStart = windowHeight * 0.75; 
-        const totalScrollable = rect.height - 50; 
-        
-        let progress = (scrollStart - rect.top) / totalScrollable;
+        const startBuffer = 100; 
+        const totalScrollable = rect.height - 50;
+        let progress = (scrollStart - rect.top - startBuffer) / totalScrollable;
         progress = Math.max(0, Math.min(1, progress));
-        
         const pathLength = animatedPathRef.current!.getTotalLength();
         const offset = pathLength - (progress * pathLength);
-        
+
         animatedPathRef.current!.style.strokeDashoffset = `${offset}`;
       });
     };
-
     window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll(); 
+    handleScroll();
     return () => window.removeEventListener('scroll', handleScroll);
   }, [pathData]);
 
-  // 3. Intersection Observer for Fade-ins
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -164,14 +155,13 @@ const Features = () => {
   }, []);
 
   return (
-    <section 
-      id="features" 
+    <section
+      id="features"
       className={`py-24 border-t font-sans overflow-visible transition-colors duration-300 ${isDark ? 'bg-black border-zinc-900' : 'bg-white border-zinc-200'}`}
-      onClick={() => setActiveIndex(null)} // Clicking outside closes mobile popups
+      onClick={() => setActiveIndex(null)}
     >
       <div className="max-w-7xl mx-auto px-4 md:px-6">
-        
-        {/* Header */}
+
         <div className="text-center mb-16 md:mb-24">
           <h2 className={`text-3xl md:text-5xl font-extrabold mb-6 tracking-tight ${isDark ? 'text-white' : 'text-zinc-900'}`}>
             Everything you need to <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-green-600">get hired</span>
@@ -181,33 +171,46 @@ const Features = () => {
           </p>
         </div>
 
-        {/* Curved Timeline Container */}
         <div ref={containerRef} className="relative w-full py-10 overflow-visible">
-          
-          {/* Background SVG Canvas */}
+
           <svg className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-visible">
-            <path 
-              d={pathData} 
-              stroke={isDark ? '#18181b' : '#f4f4f5'} 
-              strokeWidth="20" 
-              fill="none" 
+            <defs>
+              <mask id="scroll-mask">
+                <path
+                  ref={animatedPathRef}
+                  d={pathData}
+                  stroke="white"
+                  strokeWidth="10"
+                  fill="none"
+                  strokeLinecap="round"
+                  style={{ transition: 'none' }}
+                />
+              </mask>
+            </defs>
+
+            <path
+              d={pathData}
+              stroke={isDark ? '#27272a' : '#e4e4e7'}
+              strokeWidth="6"
+              fill="none"
               strokeLinecap="round"
+              strokeDasharray="12 16"
             />
-            <path 
-              ref={animatedPathRef}
-              d={pathData} 
-              stroke="#22c55e" 
-              strokeWidth="6" 
-              fill="none" 
+
+            <path
+              d={pathData}
+              stroke="#22c55e"
+              strokeWidth="6"
+              fill="none"
               strokeLinecap="round"
+              strokeDasharray="12 16"
+              mask="url(#scroll-mask)"
               style={{
                 filter: isDark ? 'drop-shadow(0 0 12px rgba(34,197,94,0.7))' : 'drop-shadow(0 0 8px rgba(34,197,94,0.5))',
-                transition: 'none' 
               }}
             />
           </svg>
 
-          {/* Timeline Nodes */}
           <div className="space-y-48 md:space-y-32 relative z-10 pb-24">
             {features.map((feature, index) => {
               const isLeft = index % 2 === 0;
@@ -215,20 +218,19 @@ const Features = () => {
               const isActive = activeIndex === index;
 
               return (
-                <div 
+                <div
                   key={index}
                   data-index={index}
                   className={`feature-timeline-card flex w-full h-12 md:h-auto items-center ${isLeft ? 'justify-start' : 'justify-end'}`}
                 >
-                  <div className={`relative w-[85%] md:w-[35%] transition-all duration-700 ease-out 
+                  <div className={`relative w-[85%] md:w-[35%] transition-all duration-700 ease-out
                     ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}
                   `}>
-                    
-                    <div 
+
+                    <div
                       ref={(el) => {dotsRef.current[index] = el}}
                       onClick={(e) => {
                         e.stopPropagation();
-                        // Only trigger popup state on mobile devices
                         if (window.innerWidth < 768) {
                           setActiveIndex(isActive ? null : index);
                         }
@@ -238,17 +240,15 @@ const Features = () => {
                         ${isLeft ? '-right-7' : '-left-7'}
                         ${isDark ? 'bg-zinc-950' : 'bg-white shadow-md'}
                         ${
-                          // Only apply the green active styles on mobile. On desktop, keep standard hover effects.
-                          isActive 
-                            ? 'scale-110 shadow-[0_0_20px_rgba(34,197,94,0.6)] border-green-500 cursor-pointer' 
+                          isActive
+                            ? 'scale-110 shadow-[0_0_20px_rgba(34,197,94,0.6)] border-green-500 cursor-pointer'
                             : 'md:hover:scale-110 border-zinc-200 dark:border-zinc-800 md:cursor-default cursor-pointer'
                         }
                       `}
                     >
                       {feature.icon}
 
-                      {/* --- MOBILE ONLY INLINE POPUP --- */}
-                      <div 
+                      <div
                         onClick={(e) => e.stopPropagation()}
                         className={`absolute bottom-[130%] w-64 p-5 rounded-2xl shadow-2xl md:hidden transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]
                           ${isActive ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'}
@@ -260,7 +260,7 @@ const Features = () => {
                           ${isLeft ? 'right-9' : 'left-9'}
                           ${isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'}
                         `} />
-                        
+
                         <div className="flex justify-between items-start mb-2">
                           <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-zinc-900'}`}>
                             {feature.title}
@@ -275,7 +275,6 @@ const Features = () => {
                       </div>
                     </div>
 
-                    {/* The Card (Always visible on Desktop, completely hidden on Mobile) */}
                     <div className={`hidden md:block p-8 rounded-2xl w-full relative z-10 transition-colors
                       ${isDark ? 'bg-zinc-900/80 border border-zinc-800 hover:border-green-500/30' : 'bg-white border border-zinc-200 hover:border-green-400/40 shadow-sm'}
                     `}>
