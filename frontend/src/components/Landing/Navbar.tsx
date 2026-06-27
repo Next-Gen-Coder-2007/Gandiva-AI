@@ -99,32 +99,23 @@ const Navbar = () => {
         <div className={`md:hidden absolute top-full left-0 w-full border-b backdrop-blur-xl transition-colors duration-300 ${isDark ? 'bg-black/95 border-white/5' : 'bg-white/95 border-zinc-200'}`}>
           <div className="flex flex-col px-6 py-6 gap-6 text-base font-medium">
             <button
+              onClick={() => handleScrollTo(0)}
+              className={`text-left hover:text-green-500 transition-colors ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}
+            >
+              Home
+            </button>
+            <button
               onClick={() => handleScrollTo("#features")}
               className={`text-left hover:text-green-500 transition-colors ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}
             >
               Features
             </button>
-            <a 
-              href="#roadmap" 
-              onClick={() => setIsMobileMenuOpen(false)}
-              className={`hover:text-green-500 transition-colors ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}
+            <button
+              onClick={() => handleScrollTo("#techstack")}
+              className={`text-left hover:text-green-500 transition-colors ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}
             >
-              Roadmaps
-            </a>
-            <a 
-              href="#practice" 
-              onClick={() => setIsMobileMenuOpen(false)}
-              className={`hover:text-green-500 transition-colors ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}
-            >
-              Mock Interviews
-            </a>
-            <a 
-              href="#about" 
-              onClick={() => setIsMobileMenuOpen(false)}
-              className={`hover:text-green-500 transition-colors ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}
-            >
-              About
-            </a>
+              Tech Stack
+            </button>
             
             <div className="h-px w-full bg-zinc-200 dark:bg-zinc-800 my-2"></div>
             
