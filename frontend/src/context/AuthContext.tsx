@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import { getCurrentUser } from '../services/auth'; 
 
 interface User {
@@ -30,10 +30,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-    checkAuth();
-  }, []);
 
   return (
     <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, checkAuth }}>
