@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { loginUser } from '../services/auth';
+import { useAuth } from '../context/AuthContext';
 
 const Login: React.FC = () => {
   const { isDark } = useTheme();
@@ -11,6 +12,8 @@ const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const { checkAuth } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -18,9 +21,9 @@ const Login: React.FC = () => {
     setError("");
 
     try {
-      const data = await loginUser(email, password);
-
-      console.log("Login Success:", data);
+      await loginUser(email, password);
+      await checkAuth();
+      navigate('/dashboard')
     } catch (err: any) {
       setError(
         err.response?.data?.detail || "Login failed"
