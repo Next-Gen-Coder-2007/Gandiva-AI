@@ -3,6 +3,7 @@ import Hero from '../components/Landing/Hero';
 import Features from '../components/Landing/Features';
 import Footer from '../components/Landing/Footer';
 import { useTheme } from '../context/ThemeContext';
+import TechStack from '../components/Landing/TechStack';
 
 const Landing = () => {
   const { isDark } = useTheme();
@@ -12,6 +13,7 @@ const Landing = () => {
       <Navbar />
       <Hero />
       <Features />
+      <TechStack />
       <Footer />
     </div>
   );
