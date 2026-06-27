@@ -157,7 +157,7 @@ const Features = () => {
   return (
     <section
       id="features"
-      className={`py-24 border-t font-sans overflow-visible transition-colors duration-300 ${isDark ? 'bg-black border-zinc-900' : 'bg-white border-zinc-200'}`}
+      className={`pt-24 border-t font-sans overflow-visible transition-colors duration-300 ${isDark ? 'bg-black border-zinc-900' : 'bg-white border-zinc-200'}`}
       onClick={() => setActiveIndex(null)}
     >
       <div className="max-w-7xl mx-auto px-4 md:px-6">

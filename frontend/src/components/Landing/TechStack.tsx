@@ -58,7 +58,7 @@ const TechStack = () => {
   ];
 
   return (
-    <section className={`relative pb-20 font-sans overflow-hidden transition-colors duration-500 ${isDark ? 'bg-black text-zinc-100 selection:bg-green-500/30 selection:text-green-200' : 'bg-white text-zinc-900 selection:bg-green-500/20 selection:text-green-900'}`}>
+    <section id='techstack' className={`relative py-24 font-sans overflow-hidden transition-colors duration-500 ${isDark ? 'bg-black text-zinc-100 selection:bg-green-500/30 selection:text-green-200' : 'bg-white text-zinc-900 selection:bg-green-500/20 selection:text-green-900'}`}>
       
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-[1200px] pointer-events-none z-0">
         <div className={`absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[600px] rounded-full blur-[120px] transition-opacity duration-500 ${isDark ? 'bg-green-500/5 opacity-100' : 'bg-green-500/10 opacity-70'}`} />
@@ -92,7 +92,6 @@ const TechStack = () => {
           </p>
         </header>
 
-        {/* 4-Column Grid mapping to the reference image */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {stackCategories.map((category, index) => (
             <div 
