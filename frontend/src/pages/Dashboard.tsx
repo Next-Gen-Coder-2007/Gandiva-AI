@@ -15,7 +15,7 @@ const Dashboard: React.FC = () => {
     setIsLoggingOut(true);
     try {
       await logoutUser();
-      logout();    
+      logout();
       navigate('/login');
     } catch (error) {
       console.error('Logout failed', error);

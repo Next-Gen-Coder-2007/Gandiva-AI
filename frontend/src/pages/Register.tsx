@@ -27,12 +27,11 @@ const Register: React.FC = () => {
     setLoading(true);
 
     try {
-      const data = await registerUser(
+      await registerUser(
         username,
         email,
         password
       );
-      console.log("Register Success:", data);
       navigate('/login')
     } catch (err: any) {
       setError(

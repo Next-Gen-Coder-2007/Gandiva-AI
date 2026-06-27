@@ -1,6 +1,7 @@
 import os
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Response, Request, status
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from passlib.context import CryptContext
@@ -17,7 +18,6 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 router = APIRouter(prefix="/auth", tags=["Auth"])
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
@@ -29,7 +29,6 @@ def create_access_token(data: dict) -> str:
     expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-
 
 def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
     token_cookie = request.cookies.get("access_token")
@@ -73,12 +72,21 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 def register(user: RegisterSchema, db: Session = Depends(get_db)):
-    existing = db.query(User).filter(User.email == user.email).first()
-    if existing:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, 
-            detail="Email already registered"
-        )
+    existing_user = db.query(User).filter(
+        or_(User.email == user.email, User.username == user.username)
+    ).first()
+
+    if existing_user:
+        if existing_user.username == user.username:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail="Username is already taken"
+            )
+        if existing_user.email == user.email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail="Email already registered"
+            )
 
     new_user = User(
         username=user.username,
@@ -94,7 +102,7 @@ def register(user: RegisterSchema, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, 
-            detail="Email already registered"
+            detail="A user with these credentials already exists."
         )
     except Exception as e:
         db.rollback()
@@ -104,7 +112,6 @@ def register(user: RegisterSchema, db: Session = Depends(get_db)):
         )
 
     return {"message": "Registered successfully"}
-
 
 @router.post("/login")
 def login(user: LoginSchema, response: Response, db: Session = Depends(get_db)):
