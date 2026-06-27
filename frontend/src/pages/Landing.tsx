@@ -2,8 +2,10 @@ import Navbar from '../components/Landing/Navbar';
 import Hero from '../components/Landing/Hero';
 import Features from '../components/Landing/Features';
 import Footer from '../components/Landing/Footer';
-import { useTheme } from '../context/ThemeContext';
 import TechStack from '../components/Landing/TechStack';
+import Contact from '../components/Landing/Contact';
+import { useTheme } from '../context/ThemeContext';
+
 
 const Landing = () => {
   const { isDark } = useTheme();
@@ -14,6 +16,7 @@ const Landing = () => {
       <Hero />
       <Features />
       <TechStack />
+      <Contact />
       <Footer />
     </div>
   );

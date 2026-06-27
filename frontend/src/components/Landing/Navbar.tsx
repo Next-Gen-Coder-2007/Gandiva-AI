@@ -47,6 +47,12 @@ const Navbar = () => {
           >
             Tech Stack
           </button>
+          <button
+            onClick={() => handleScrollTo("#contact")}
+            className="hover:text-green-500 transition-colors cursor-pointer bg-transparent border-none"
+          >
+            Contact Us
+          </button>
         </div>
 
         <div className="flex items-center gap-3">
