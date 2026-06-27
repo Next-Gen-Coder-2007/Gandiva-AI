@@ -7,7 +7,7 @@ import { logoutUser } from '../services/auth';
 
 const Dashboard: React.FC = () => {
   const { isDark } = useTheme();
-  const { user, checkAuth } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -15,7 +15,7 @@ const Dashboard: React.FC = () => {
     setIsLoggingOut(true);
     try {
       await logoutUser();
-      await checkAuth();       
+      logout();    
       navigate('/login');
     } catch (error) {
       console.error('Logout failed', error);

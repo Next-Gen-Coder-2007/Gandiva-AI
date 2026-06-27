@@ -9,8 +9,10 @@ const ProtectedRoute: React.FC = () => {
   const location = useLocation();
 
   useEffect(() => {
-    checkAuth();
-  })
+    if(!isAuthenticated) {
+      checkAuth();
+    }
+  }, [])
 
   if (isLoading) {
     return (
