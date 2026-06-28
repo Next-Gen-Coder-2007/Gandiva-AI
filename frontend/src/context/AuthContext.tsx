@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
-import { getCurrentUser } from '../services/auth'; 
+import { getCurrentUser, logoutUser } from '../services/auth'; 
 
 interface User {
   id: number;
@@ -12,7 +12,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   checkAuth: () => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,16 +33,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     setIsLoggingOut(true);
-    setUser(null);
-    setTimeout(() => {
+    try {
+      await logoutUser(); 
+    } catch (error) {
+      console.error("Backend logout failed", error);
+    } finally {
+      setUser(null);
       setIsLoggingOut(false);
-    }, 500)
-  }
+    }
+  };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading: isLoading || isLoggingOut, checkAuth, logout }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      isAuthenticated: !!user, 
+      isLoading: isLoading || isLoggingOut, 
+      checkAuth, 
+      logout 
+    }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -7,12 +7,20 @@ const ProtectedRoute: React.FC = () => {
   const { isAuthenticated, isLoading, checkAuth } = useAuth();
   const { isDark } = useTheme();
   const location = useLocation();
+  
+  const wasAuthenticated = useRef(isAuthenticated);
 
   useEffect(() => {
-    if(!isAuthenticated) {
+    if (!isAuthenticated) {
       checkAuth();
     }
-  }, [])
+  }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      wasAuthenticated.current = true;
+    }
+  }, [isAuthenticated]);
 
   if (isLoading) {
     return (
@@ -23,6 +31,10 @@ const ProtectedRoute: React.FC = () => {
   }
 
   if (!isAuthenticated) {
+    if (wasAuthenticated.current) {
+      return <Navigate to="/login" replace />;
+    }
+
     return (
       <Navigate 
         to="/login"

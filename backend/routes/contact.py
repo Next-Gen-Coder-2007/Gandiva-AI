@@ -9,9 +9,7 @@ load_dotenv()
 router = APIRouter(prefix="/contact", tags=["Contact"])
 
 @router.post('')
-async def send_contact_email(form_data: ContactForm):
-    emailjs_url = "https://api.emailjs.com/api/v1.0/email/send"
-    
+async def send_contact_email(form_data: ContactForm):    
     payload = {
         "service_id": os.getenv("EMAILJS_SERVICE_ID"),
         "template_id": os.getenv("EMAILJS_TEMPLATE_ID"),
@@ -25,7 +23,7 @@ async def send_contact_email(form_data: ContactForm):
     }
 
     async with httpx.AsyncClient() as client:
-        response = await client.post(emailjs_url, json=payload,headers={"Content-Type": "application/json"})
+        response = await client.post(os.getenv("EMAILJS_URL"), json=payload,headers={"Content-Type": "application/json"})
         
         if response.status_code != 200:
             raise HTTPException(status_code=500, detail=response.text)

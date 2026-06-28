@@ -1,9 +1,14 @@
 import { Link } from 'react-router-dom';
 import { FaArrowLeft, FaCompass } from "react-icons/fa";
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 
 const NotFound = () => {
   const { isDark } = useTheme();
+  const { user } = useAuth();
+
+  const targetPath = user ? '/dashboard' : '/';
+  const buttonText = user ? 'Return to Dashboard' : 'Return to Homepage';
 
   return (
     <div className={`relative flex flex-col items-center justify-center w-full min-h-screen px-6 overflow-hidden font-sans transition-colors duration-300 ${isDark ? 'bg-black' : 'bg-white'}`}>
@@ -35,20 +40,18 @@ const NotFound = () => {
           The resource you are looking for has been moved, removed, or doesn't exist. Let's guide you back to safety.
         </p>
 
-        {/* Premium Animated Button */}
         <Link 
-          to="/" 
+          to={targetPath} 
           className={`group relative inline-flex items-center gap-3 px-8 py-4 rounded-full font-medium transition-all duration-300 overflow-hidden
             ${isDark 
               ? 'bg-zinc-900 border border-zinc-800 text-white hover:border-green-500/50 hover:shadow-[0_0_30px_rgba(34,197,94,0.15)]' 
               : 'bg-white border border-zinc-200 text-zinc-900 hover:border-green-500/50 hover:shadow-[0_0_30px_rgba(34,197,94,0.15)]'
             }`}
         >
-          {/* Button Hover Sweep Effect */}
           <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-green-400/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></span>
           
           <FaArrowLeft className="relative w-4 h-4 text-green-500 transition-transform duration-300 group-hover:-translate-x-1" />
-          <span className="relative">Return to Homepage</span>
+          <span className="relative">{buttonText}</span>
         </Link>
       </div>
     </div>

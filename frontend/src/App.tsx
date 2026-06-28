@@ -8,6 +8,7 @@ import Register from './pages/Register';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Dashboard from './pages/Dashboard';
+import Layout from './components/Main/Layout';
 
 function App() {
   useLenis();
@@ -20,8 +21,14 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route element={<ProtectedRoute />}>
-              <Route path='/dashboard' element={<Dashboard />} />
+            <Route element={
+              <ProtectedRoute/>
+            }>
+              <Route element={
+                <Layout />
+              }>
+                <Route path='/dashboard' element={<Dashboard />} />
+              </Route>
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
