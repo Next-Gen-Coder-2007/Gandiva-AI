@@ -1,6 +1,7 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react';
 import { Mail, ArrowRight, CheckCircle2, Loader2, MapPin, Clock } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import { sendContactMessage } from '../../services/contact';
 
 interface FormData {
   name: string;
@@ -25,15 +26,25 @@ const Contact = () => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setStatus('submitting');
 
-    setTimeout(() => {
+    try {
+      await sendContactMessage(
+        formData.name,
+        formData.email,
+        formData.message
+      )
+
       setStatus('success');
       setFormData({ name: '', email: '', message: '' });
       setTimeout(() => setStatus('idle'), 3000);
-    }, 1500);
+
+    } catch (error: any) {
+      setStatus('idle');
+      alert(error.response.data.detail);
+    }
   };
 
   const inputBaseClasses = `w-full px-4 py-3 text-sm rounded-lg border transition-all duration-200 outline-none focus:ring-2 focus:ring-offset-1 ${
