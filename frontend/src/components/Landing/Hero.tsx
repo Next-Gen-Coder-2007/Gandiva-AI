@@ -73,15 +73,7 @@ const Hero = () => {
       </div>
 
       <main className="relative z-10 flex flex-col items-center justify-center px-4 pt-0 pb-16 min-h-[95vh]">
-        
-        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-8 shadow-2xl transition-all duration-1000 ${isDark ? 'bg-zinc-900 border border-zinc-800 shadow-green-900/20' : 'bg-white border border-zinc-200 shadow-green-200/40'}`}>
-          <div className="grid grid-cols-2 gap-1.5">
-            <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse"></div>
-            <div className={`w-3 h-3 rounded-full ${isDark ? 'bg-zinc-600' : 'bg-zinc-300'}`}></div>
-            <div className={`w-3 h-3 rounded-full ${isDark ? 'bg-zinc-600' : 'bg-zinc-300'}`}></div>
-            <div className={`w-3 h-3 rounded-full ${isDark ? 'bg-zinc-600' : 'bg-zinc-300'}`}></div>
-          </div>
-        </div>
+      
 
         <div className="text-center max-w-4xl mx-auto z-20">
           <div className={`inline-block mb-4 px-3 py-1 rounded-full border text-xs font-semibold tracking-wide ${isDark ? 'bg-zinc-900 border-zinc-800 text-green-400' : 'bg-white border-zinc-200 text-green-600'}`}>

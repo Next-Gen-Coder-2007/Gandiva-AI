@@ -1,9 +1,4 @@
-import axios from "axios";
-
-const api = axios.create({
-  baseURL: "http://localhost:8000",
-  withCredentials: true, 
-});
+import { api } from './api';
 
 export const registerUser = async (
   username: string,
@@ -36,5 +31,10 @@ export const logoutUser = async () => {
 
 export const getCurrentUser = async () => {
   const response = await api.get("/auth/me");
+  return response.data;
+};
+
+export const verifyGoogleToken = async (accessToken: string) => {
+  const response = await api.post("/google/verify", { access_token: accessToken });
   return response.data;
 };
