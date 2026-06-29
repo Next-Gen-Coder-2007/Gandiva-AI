@@ -1,6 +1,8 @@
 import os
+import random
 import secrets
 from datetime import datetime, timedelta
+from cachetools import TTLCache 
 from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
@@ -17,6 +19,7 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+otp_cache = TTLCache(maxsize=1000, ttl=600)
 
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
@@ -107,3 +110,28 @@ def get_or_create_google_user(db: Session, email: str):
             raise HTTPException(status_code=400, detail="Error creating Google user account.")
             
     return db_user
+
+def generate_and_save_otp(db: Session, email: str) -> str:
+    otp = str(random.randint(100000, 999999))
+    otp_cache[email] = otp
+    return otp
+
+def check_otp_validity(db: Session, email: str, otp: str) -> bool:
+    stored_otp = otp_cache.get(email)
+    return stored_otp is not None and stored_otp == otp
+
+def verify_otp_and_update_password(db: Session, email: str, otp: str, new_password: str) -> bool:
+    if not check_otp_validity(db, email, otp):
+        return False
+        
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        return False
+        
+    user.password = hash_password(new_password)
+    db.commit()
+    
+    if email in otp_cache:
+        del otp_cache[email]
+        
+    return True

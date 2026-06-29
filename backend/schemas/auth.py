@@ -11,3 +11,15 @@ class LoginSchema(BaseModel):
 
 class GoogleToken(BaseModel):
     access_token: str
+
+class ForgotPasswordSchema(BaseModel):
+    email: EmailStr
+
+class VerifyOtpSchema(BaseModel):
+    email: EmailStr
+    otp: str
+
+class ResetPasswordSchema(BaseModel):
+    email: EmailStr
+    otp: str
+    new_password: str
