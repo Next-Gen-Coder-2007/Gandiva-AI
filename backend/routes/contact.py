@@ -16,8 +16,8 @@ async def send_contact_email(form_data: ContactForm):
         "user_id": os.getenv("EMAILJS_PUBLIC_KEY"),
         'accessToken': os.getenv('EMAILJS_PRIVATE_KEY'),
         "template_params": {
-            "from_name": form_data.name,
-            "reply_to": form_data.email,
+            "name": form_data.name,
+            "email": form_data.email,
             "message": form_data.message
         }
     }
