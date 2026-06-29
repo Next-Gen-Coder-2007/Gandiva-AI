@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react'; // Added useEffect
 import { 
   LayoutDashboard, 
   FileText, 
@@ -25,6 +25,18 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
   const { isDark } = useTheme();
   const location = useLocation();
   const { logout } = useAuth();
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
 
   const navItems = [
     { name: 'Overview', path: '/dashboard', icon: LayoutDashboard },
