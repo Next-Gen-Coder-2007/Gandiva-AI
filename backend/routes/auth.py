@@ -65,7 +65,7 @@ async def forgot_password(payload: ForgotPasswordSchema, db: Session = Depends(g
     if not user:
         return {"message": "If an account exists, an OTP has been sent."}
 
-    otp = generate_and_save_otp(db, payload.email)
+    otp = generate_and_save_otp(payload.email)
 
     email_payload = {
         "service_id": os.getenv("EMAILJS_SERVICE_ID"),
@@ -91,7 +91,7 @@ async def forgot_password(payload: ForgotPasswordSchema, db: Session = Depends(g
 
 @router.post("/verify-otp")
 def verify_otp(payload: VerifyOtpSchema, db: Session = Depends(get_db)):
-    is_valid = check_otp_validity(db, payload.email, payload.otp)
+    is_valid = check_otp_validity(payload.email, payload.otp)
     if not is_valid:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, 
