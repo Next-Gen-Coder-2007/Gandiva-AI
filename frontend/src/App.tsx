@@ -10,6 +10,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Dashboard from './pages/Dashboard';
 import Layout from './components/Main/Layout';
 import ForgotPassword from './pages/ForgotPassword';
+import ResumeBuilder from './pages/ResumeBuilder';
 
 function App() {
   useLenis();
@@ -30,6 +31,7 @@ function App() {
                 <Layout />
               }>
                 <Route path='/dashboard' element={<Dashboard />} />
+                <Route path='/resume-builder' element={<ResumeBuilder />} />
               </Route>
             </Route>
             <Route path="*" element={<NotFound />} />
