@@ -16,6 +16,7 @@ import Quizzes from './pages/Quizzes';
 import Internships from './pages/Internships';
 import Interviews from './pages/Interviews';
 import Roadmaps from './pages/Roadmaps';
+import Settings from './pages/Settings';
 
 function App() {
   useLenis();
@@ -42,6 +43,7 @@ function App() {
                 <Route path='/interviews' element={<Interviews />} />
                 <Route path='/roadmaps' element={<Roadmaps />} />
                 <Route path='/internships' element={<Internships />} />
+                <Route path='/settings' element={<Settings />} />
               </Route>
             </Route>
             <Route path="*" element={<NotFound />} />
