@@ -5,7 +5,6 @@ import {
   Search, 
   BrainCircuit, 
   MessageSquare, 
-  Target, 
   Map, 
   Briefcase, 
   X,
@@ -40,13 +39,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
 
   const navItems = [
     { name: 'Overview', path: '/dashboard', icon: LayoutDashboard },
-    { name: 'Resume Builder', path: '/resume-builder', icon: FileText },
-    { name: 'AI Analyzer', path: '/analyzer', icon: Search },
+    { name: 'AI Resume Builder', path: '/resume-builder', icon: FileText },
+    { name: 'AI Resume Analyzer', path: '/resume-analyzer', icon: Search },
     { name: 'AI Quizzes', path: '/quizzes', icon: BrainCircuit },
-    { name: 'Mock Interviews', path: '/interviews', icon: MessageSquare },
-    { name: 'Skill Gaps', path: '/skills', icon: Target },
-    { name: 'My Roadmap', path: '/roadmap', icon: Map },
-    { name: 'Internships', path: '/internships', icon: Briefcase },
+    { name: 'AI Mock Interview', path: '/interviews', icon: MessageSquare },
+    { name: 'AI Roadmaps', path: '/roadmap', icon: Map },
+    { name: 'Internships & Jobs', path: '/internships', icon: Briefcase },
   ];
 
   const handleLogout = async () => {
