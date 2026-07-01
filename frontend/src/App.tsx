@@ -14,6 +14,7 @@ import ResumeBuilder from './pages/ResumeBuilder';
 import Quizzes from './pages/Quizzes';
 import Internships from './pages/Internships';
 import Interviews from './pages/Interviews';
+import Roadmaps from './pages/Roadmaps';
 
 function App() {
   useLenis();
@@ -37,6 +38,7 @@ function App() {
                 <Route path='/resume-analyzer' element={<ResumeBuilder />} />
                 <Route path='/quizzes' element={<Quizzes />} />
                 <Route path='/interviews' element={<Interviews />} />
+                <Route path='/roadmaps' element={<Roadmaps />} />
                 <Route path='/internships' element={<Internships />} />
               </Route>
             </Route>

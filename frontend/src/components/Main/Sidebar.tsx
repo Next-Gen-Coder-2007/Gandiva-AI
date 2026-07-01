@@ -43,7 +43,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
     { name: 'AI Resume Analyzer', path: '/resume-analyzer', icon: Search },
     { name: 'AI Quizzes', path: '/quizzes', icon: BrainCircuit },
     { name: 'AI Mock Interview', path: '/interviews', icon: MessageSquare },
-    { name: 'AI Roadmaps', path: '/roadmap', icon: Map },
+    { name: 'AI Roadmaps', path: '/roadmaps', icon: Map },
     { name: 'Internships & Jobs', path: '/internships', icon: Briefcase },
   ];
 
