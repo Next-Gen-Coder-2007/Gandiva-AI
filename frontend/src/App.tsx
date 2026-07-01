@@ -12,6 +12,7 @@ import Layout from './components/Main/Layout';
 import ForgotPassword from './pages/ForgotPassword';
 import ResumeBuilder from './pages/ResumeBuilder';
 import Quizzes from './pages/Quizzes';
+import Internships from './pages/Internships';
 
 function App() {
   useLenis();
@@ -34,6 +35,7 @@ function App() {
                 <Route path='/dashboard' element={<Dashboard />} />
                 <Route path='/resume-analyzer' element={<ResumeBuilder />} />
                 <Route path='/quizzes' element={<Quizzes />} />
+                <Route path='/internships' element={<Internships />} />
               </Route>
             </Route>
             <Route path="*" element={<NotFound />} />
