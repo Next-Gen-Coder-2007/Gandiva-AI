@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Briefcase, MapPin, DollarSign, Filter, Search, ChevronRight } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
@@ -7,7 +7,6 @@ const Internships: React.FC = () => {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Internships & Jobs</h1>
@@ -22,7 +21,6 @@ const Internships: React.FC = () => {
         </button>
       </div>
 
-      {/* Search Bar */}
       <div className={`relative flex items-center p-2 rounded-2xl border ${isDark ? 'bg-zinc-950/50 border-zinc-800' : 'bg-white border-zinc-200'}`}>
         <Search className="w-5 h-5 ml-3 text-zinc-400" />
         <input 
@@ -32,10 +30,8 @@ const Internships: React.FC = () => {
         />
       </div>
 
-      {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         
-        {/* Sidebar Filters (Desktop) */}
         <div className="hidden lg:block space-y-6">
           <h3 className="font-bold">Categories</h3>
           <div className="space-y-2">
@@ -47,7 +43,6 @@ const Internships: React.FC = () => {
           </div>
         </div>
 
-        {/* Listings */}
         <div className="lg:col-span-3 space-y-4">
           <h2 className="text-lg font-bold">Recommended for you</h2>
           {[1, 2, 3].map((item) => (
