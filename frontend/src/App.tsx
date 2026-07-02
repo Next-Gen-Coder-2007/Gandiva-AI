@@ -10,8 +10,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Dashboard from './pages/Dashboard';
 import Layout from './components/Main/Layout';
 import ForgotPassword from './pages/ForgotPassword';
-import ResumeBuilder from './pages/ResumeBuilder';
-import ResumeAnalyser from './pages/ResumeAnalyser';
+import Resumes from './pages/Resumes';
 import Quizzes from './pages/Quizzes';
 import Internships from './pages/Internships';
 import Interviews from './pages/Interviews';
@@ -37,8 +36,7 @@ function App() {
                 <Layout />
               }>
                 <Route path='/dashboard' element={<Dashboard />} />
-                <Route path='/resume-builder' element={<ResumeBuilder />} />
-                <Route path='/resume-analyzer' element={<ResumeAnalyser />} />
+                <Route path='/resumes' element={<Resumes />} />
                 <Route path='/quizzes' element={<Quizzes />} />
                 <Route path='/interviews' element={<Interviews />} />
                 <Route path='/roadmaps' element={<Roadmaps />} />

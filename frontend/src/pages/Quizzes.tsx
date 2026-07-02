@@ -77,7 +77,6 @@ const Quizzes: React.FC = () => {
         <h2 className="text-lg font-bold mb-6">Recent Attempts</h2>
         {history.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Map your quiz history items here */}
           </div>
         ) : (
           <div className={`py-16 flex flex-col items-center justify-center text-center ${isDark ? 'text-zinc-600' : 'text-zinc-400'}`}>

@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { 
   LayoutDashboard, 
   FileText, 
-  Search, 
   BrainCircuit, 
   MessageSquare, 
   Map, 
@@ -39,8 +38,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
 
   const navItems = [
     { name: 'Overview', path: '/dashboard', icon: LayoutDashboard },
-    { name: 'AI Resume Builder', path: '/resume-builder', icon: FileText },
-    { name: 'AI Resume Analyzer', path: '/resume-analyzer', icon: Search },
+    { name: 'AI Resume Builder', path: '/resumes', icon: FileText },
     { name: 'AI Quizzes', path: '/quizzes', icon: BrainCircuit },
     { name: 'AI Mock Interview', path: '/interviews', icon: MessageSquare },
     { name: 'AI Roadmaps', path: '/roadmaps', icon: Map },
