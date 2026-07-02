@@ -23,3 +23,10 @@ export const resetPassword = async (email: string, otp: string, newPassword: str
   });
   return response.data;
 };
+
+export const changePassword = async (newPassword: string) => {
+  const response = await api.post("/auth/change-password", { 
+    new_password: newPassword 
+  });
+  return response.data;
+}

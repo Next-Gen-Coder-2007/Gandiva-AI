@@ -1,17 +1,40 @@
 import React, { useState } from 'react';
 import { User, Shield, Eye, EyeOff, Save, Sun, Moon, BrainCircuit, Briefcase, ChevronRight } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { changePassword } from '../services/forgot-password';
 
 const Settings: React.FC = () => {
   const { isDark, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState('profile');
   const [showPassword, setShowPassword] = useState(false);
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
 
   const tabs = [
     { id: 'profile', label: 'Career Profile', icon: User },
     { id: 'ai-settings', label: 'AI Preferences', icon: BrainCircuit },
     { id: 'security', label: 'Security', icon: Shield },
   ];
+
+  const handleSave = async () => {
+    if (activeTab !== 'security') return;
+    
+    setIsLoading(true);
+    setMessage(null);
+
+    try {
+      await changePassword(password);
+      setMessage({ text: 'Password updated successfully!', type: 'success' });
+      setPassword('');
+      console.log("Password Updated!");
+    } catch (error: any) {
+      setMessage({ text: 'Failed to update password. Please try again.', type: 'error' });
+      console.log(error.response.data);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-8">
@@ -23,7 +46,6 @@ const Settings: React.FC = () => {
       </div>
 
       <div className="flex flex-col md:flex-row gap-8">
-        {/* Sidebar */}
         <aside className="w-full md:w-64 shrink-0 space-y-1">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -47,9 +69,7 @@ const Settings: React.FC = () => {
           })}
         </aside>
 
-        {/* Content Area */}
         <div className="flex-1 space-y-6">
-          {/* PROFILE TAB */}
           {activeTab === 'profile' && (
             <div className={`p-8 rounded-2xl border ${isDark ? 'bg-zinc-950/50 border-zinc-800' : 'bg-white border-zinc-200'}`}>
               <h2 className="text-xl font-bold mb-6">Career Profile</h2>
@@ -69,7 +89,6 @@ const Settings: React.FC = () => {
             </div>
           )}
 
-          {/* AI SETTINGS TAB */}
           {activeTab === 'ai-settings' && (
             <div className={`p-8 rounded-2xl border ${isDark ? 'bg-zinc-950/50 border-zinc-800' : 'bg-white border-zinc-200'}`}>
               <h2 className="text-xl font-bold mb-6">AI Configuration</h2>
@@ -105,6 +124,8 @@ const Settings: React.FC = () => {
                   <label className="block text-sm font-medium mb-2 opacity-80">Update Password</label>
                   <input 
                     type={showPassword ? 'text' : 'password'} 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     className={`w-full p-3 rounded-xl border outline-none pr-12 focus:border-green-500 transition-colors ${isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-zinc-50 border-zinc-200'}`} 
                     placeholder="Enter new password" 
                   />
@@ -119,10 +140,26 @@ const Settings: React.FC = () => {
             </div>
           )}
 
-          <div className="flex justify-end">
-            <button className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-xl font-semibold transition-all active:scale-[0.98]">
-              <Save className="w-4 h-4" /> Save Changes
-            </button>
+          <div className="flex flex-col gap-4">
+            {message && (
+              <div className={`p-3 rounded-lg text-sm ${
+                message.type === 'success' 
+                  ? 'bg-green-500/10 text-green-500' 
+                  : 'bg-red-500/10 text-red-500'
+              }`}>
+                {message.text}
+              </div>
+            )}
+            
+            <div className="flex justify-end">
+              <button 
+                onClick={handleSave}
+                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-xl font-semibold transition-all active:scale-[0.98] disabled:opacity-50"
+                disabled={isLoading || (activeTab === 'security' && !password)}
+              >
+                {isLoading ? 'Saving...' : <><Save className="w-4 h-4" /> Save Changes</>}
+              </button>
+            </div>
           </div>
         </div>
       </div>

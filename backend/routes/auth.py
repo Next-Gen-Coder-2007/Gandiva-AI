@@ -4,8 +4,9 @@ from sqlalchemy.orm import Session
 import os, httpx
 from db.database import get_db
 from models.user import User
-from schemas.auth import RegisterSchema, LoginSchema, ForgotPasswordSchema, VerifyOtpSchema, ResetPasswordSchema
+from schemas.auth import ChangePasswordSchema, RegisterSchema, LoginSchema, ForgotPasswordSchema, VerifyOtpSchema, ResetPasswordSchema
 from services.auth import (
+    hash_password,
     register_local_user, 
     authenticate_local_user, 
     create_access_token, 
@@ -110,3 +111,14 @@ def reset_password(payload: ResetPasswordSchema, db: Session = Depends(get_db)):
             detail="Invalid or expired OTP"
         )
     return {"message": "Password reset successfully"}
+
+@router.post("/change-password")
+def change_password(payload: ChangePasswordSchema, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if not current_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not authenticated"
+        )
+    current_user.password = hash_password(payload.new_password)
+    db.commit()
+    return {"message": "Password changed successfully"}

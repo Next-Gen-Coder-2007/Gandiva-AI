@@ -23,3 +23,6 @@ class ResetPasswordSchema(BaseModel):
     email: EmailStr
     otp: str
     new_password: str
+
+class ChangePasswordSchema(BaseModel):
+    new_password: str
