@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import { PlusCircle, UploadCloud, FileText, LayoutGrid, X } from 'lucide-react';
+import { PlusCircle, UploadCloud, FileText, LayoutGrid, X, Loader2 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { createResume, getAllResumes } from '../services/resume';
 
@@ -9,6 +9,7 @@ const Resumes: React.FC = () => {
   const [modalMode, setModalMode] = useState<'create' | 'upload' | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
   const [resumes, setResumes] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [resumeName, setResumeName] = useState("");
 
   const closeModal = () => {
@@ -33,13 +34,20 @@ const Resumes: React.FC = () => {
   }, [modalMode]);
 
   const fetchResumes = async () => {
+    setIsLoading(true);
     try {
       const { data } = await getAllResumes();
       setResumes(data);
-    } catch (err) { console.error("Failed to fetch resumes"); }
+    } catch (err) {
+      console.error("Failed to fetch resumes");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  useEffect(() => { fetchResumes(); }, []);
+  useEffect(() => {
+    fetchResumes();
+  }, []);
 
   const handleCreate = async () => {
     if (!resumeName.trim()) return;
@@ -48,7 +56,9 @@ const Resumes: React.FC = () => {
       await fetchResumes();
       setResumeName("");
       closeModal();
-    } catch (err) { alert("Error creating resume"); }
+    } catch (err) {
+      alert("Error creating resume");
+    }
   };
 
   return (
@@ -75,7 +85,12 @@ const Resumes: React.FC = () => {
           <LayoutGrid className="w-5 h-5 text-green-500" /> My Resumes
         </h2>
         
-        {resumes.length === 0 ? (
+        {isLoading ? (
+          <div className="min-h-[400px] flex flex-col items-center justify-center">
+            <Loader2 className="w-10 h-10 text-green-500 animate-spin" />
+            <p className="mt-4 font-medium">Loading your resumes...</p>
+          </div>
+        ) : resumes.length === 0 ? (
           <div className="min-h-[400px] flex flex-col items-center justify-center text-center border-3 border-dashed border-zinc-800 rounded-2xl p-8">
             <FileText className="w-10 h-10 text-green-500 mb-6" />
             <h3 className="text-xl font-bold">No resumes found</h3>

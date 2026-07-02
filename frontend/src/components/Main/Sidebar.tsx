@@ -47,6 +47,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
 
   const handleLogout = async () => {
     try {
+      setIsOpen(false); // Close sidebar on logout
       await logout();
     } catch (error) {
       console.error('Logout failed:', error);
@@ -84,6 +85,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
               <Link
                 key={item.name}
                 to={item.path}
+                onClick={() => setIsOpen(false)} // Added to close on mobile
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium transition-colors duration-200 ${
                   isActive
                     ? isDark ? 'bg-green-500/10 text-green-400' : 'bg-green-50 text-green-600'
@@ -101,6 +103,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
           <div className="space-y-1">
             <Link
               to="/settings"
+              onClick={() => setIsOpen(false)} // Added to close on mobile
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium transition-colors duration-200 ${
                 location.pathname === '/settings'
                   ? isDark ? 'bg-green-500/10 text-green-400' : 'bg-green-50 text-green-600'
