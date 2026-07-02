@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Shield, Lock, Eye, EyeOff, Save, Sun, Moon, BrainCircuit, Briefcase, ChevronRight } from 'lucide-react';
+import { User, Shield, Eye, EyeOff, Save, Sun, Moon, BrainCircuit, Briefcase, ChevronRight } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 const Settings: React.FC = () => {
