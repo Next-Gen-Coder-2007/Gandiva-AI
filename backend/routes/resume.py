@@ -1,41 +1,22 @@
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
-import os, shutil
+from typing import List
 from db.database import get_db
-from models.user import User
-from models.resume import Resume
+from models.resume import Resume as ResumeModel
+from schemas.resume import Resume, ResumeCreate
 from services.auth import get_current_user
-from services.parser_service import extract_resume_text
+from models.user import User
 
-router = APIRouter(prefix="/resume", tags=["Resume"])
-UPLOAD_DIR = "uploads/resumes"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+router = APIRouter(prefix="/resumes", tags=["Resumes"])
 
-@router.post("/upload")
-async def upload_resume(
-    file: UploadFile = File(...),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    # Validate Size (5MB limit)
-    contents = await file.read()
-    if len(contents) > 5 * 1024 * 1024:
-        raise HTTPException(400, "File too large")
-    await file.seek(0)
-    
-    # Save File
-    file_path = f"{UPLOAD_DIR}/{current_user.id}_{file.filename}"
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-    
-    # Parse Text
-    ext = os.path.splitext(file.filename)[1]
-    text = extract_resume_text(file_path, ext)
-    
-    # Save to DB
-    resume = Resume(user_id=current_user.id, file_name=file.filename, file_path=file_path, extracted_text=text)
-    db.add(resume)
+@router.post("/", response_model=Resume, status_code=status.HTTP_201_CREATED)
+def create_resume(resume: ResumeCreate, db: Session = Depends(get_db),current_user: User = Depends(get_current_user)):
+    db_resume = ResumeModel(name=resume.name, user_id=current_user.id)
+    db.add(db_resume)
     db.commit()
-    db.refresh(resume)
-    
-    return {"message": "Resume uploaded successfully", "resume_id": resume.id, "filename": file.filename, "text_preview": text[:2000]}
+    db.refresh(db_resume)
+    return db_resume
+
+@router.get("/", response_model=List[Resume])
+def get_user_resumes(db: Session = Depends(get_db),current_user: User = Depends(get_current_user)):
+    return db.query(ResumeModel).filter(ResumeModel.user_id == current_user.id).all()
