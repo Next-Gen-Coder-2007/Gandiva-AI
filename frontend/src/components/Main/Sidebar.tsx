@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'; // Added useEffect
+import React, { useEffect } from 'react';
 import { 
   LayoutDashboard, 
   FileText, 
@@ -64,7 +64,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
         />
       )}
 
-      <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 h-full transform transition-transform duration-300 ease-in-out lg:transform-none flex flex-col border-r ${
+      <aside className={`fixed lg:static inset-y-0 left-0 z-40 w-64 h-full transform transition-transform duration-300 ease-in-out lg:transform-none flex flex-col border-r ${
         isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         } ${isDark ? 'bg-zinc-950/90 border-zinc-800/80 text-zinc-100' : 'bg-white/90 border-zinc-200 text-zinc-900'} backdrop-blur-xl`}
       >
