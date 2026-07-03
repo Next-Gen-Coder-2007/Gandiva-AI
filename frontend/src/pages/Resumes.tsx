@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { PlusCircle, UploadCloud, FileText, LayoutGrid, X, Loader2, Eye, Pencil, Trash2 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import { createResume, getAllResumes } from '../services/resume';
+import { createResume, getAllResumes, deleteResume } from '../services/resume';
 
 const Resumes: React.FC = () => {
   const { isDark } = useTheme();
@@ -54,6 +54,17 @@ const Resumes: React.FC = () => {
     }
   };
 
+  const handleDelete = async (resumeId: number) => {
+    if (!window.confirm("Are you sure you want to delete this resume?")) return;
+
+    try {
+      await deleteResume(resumeId);
+      await fetchResumes();
+    } catch (err) {
+      alert("Error deleting resume");
+    }
+  };
+
   return (
     <div className={`min-h-screen p-4 sm:p-8 max-w-7xl mx-auto font-sans ${isDark ? 'bg-black text-white' : 'bg-white text-zinc-900'}`}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-10">
@@ -77,7 +88,19 @@ const Resumes: React.FC = () => {
         </h2>
         
         {isLoading ? (
-          <div className="h-64 flex items-center justify-center"><Loader2 className="w-8 h-8 text-green-500 animate-spin" /></div>
+          <div className="min-h-[400px] flex flex-col items-center justify-center">
+            <Loader2 className="w-10 h-10 text-green-500 animate-spin" />
+            <p className="mt-4 font-medium">Loading your resumes...</p>
+          </div>
+        ) : resumes.length === 0 ? (
+          <div className="min-h-[400px] flex flex-col items-center justify-center text-center border-3 border-dashed border-zinc-800 rounded-2xl p-8">
+            <FileText className="w-10 h-10 text-green-500 mb-6" />
+            <h3 className="text-xl font-bold">No resumes found</h3>
+            <p className={`mt-2 mb-8 max-w-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
+              You haven't built your professional profile yet. Use our <span className="font-semibold text-green-500">AI Resume Builder</span> to craft an ATS-friendly resume in minutes.
+            </p>
+            <button onClick={() => setModalMode('create')} className="px-6 py-3 rounded-xl bg-green-600 text-white font-semibold">Create New Resume</button>
+          </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {resumes.map((r: any) => (
@@ -96,7 +119,9 @@ const Resumes: React.FC = () => {
                   <div className="flex items-center gap-1">
                     <button className="p-2 rounded-lg hover:bg-zinc-500/10 text-green-500 cursor-pointer"><Eye className="w-4 h-4" /></button>
                     <button className="p-2 rounded-lg hover:bg-zinc-500/10 text-blue-500 cursor-pointer"><Pencil className="w-4 h-4" /></button>
-                    <button className="p-2 rounded-lg hover:bg-red-500/10 text-red-500 cursor-pointer"><Trash2 className="w-4 h-4" /></button>
+                    <button className="p-2 rounded-lg hover:bg-red-500/10 text-red-500 cursor-pointer" onClick={() => handleDelete(r.id)}>
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               </div>

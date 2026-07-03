@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from db.database import get_db
@@ -16,6 +16,14 @@ def create_resume(resume: ResumeCreate, db: Session = Depends(get_db),current_us
     db.commit()
     db.refresh(db_resume)
     return db_resume
+
+@router.post("/{resume_id}/delete", status_code=status.HTTP_204_NO_CONTENT)
+def delete_resume(resume_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    db_resume = db.query(ResumeModel).filter(ResumeModel.id == resume_id, ResumeModel.user_id == current_user.id).first()
+    if not db_resume:
+        raise HTTPException(status_code=404, detail="Resume not found")
+    db.delete(db_resume)
+    db.commit()
 
 @router.get("", response_model=List[Resume])
 def get_user_resumes(db: Session = Depends(get_db),current_user: User = Depends(get_current_user)):
