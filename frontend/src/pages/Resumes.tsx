@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import { PlusCircle, UploadCloud, FileText, LayoutGrid, X, Loader2, Eye, Pencil, Trash2 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { createResume, getAllResumes, deleteResume } from '../services/resume';
+import { useNavigate } from 'react-router-dom';
 
 const Resumes: React.FC = () => {
   const { isDark } = useTheme();
@@ -10,7 +11,8 @@ const Resumes: React.FC = () => {
   const [isAnimating, setIsAnimating] = useState(false);
   const [resumes, setResumes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [resumeName, setResumeName] = useState("");
+  const [resumeTitle, setResumeTitle] = useState("");
+  const navigate = useNavigate();
 
   const closeModal = () => {
     setIsAnimating(false);
@@ -46,11 +48,11 @@ const Resumes: React.FC = () => {
   }, []);
 
   const handleCreate = async () => {
-    if (!resumeName.trim()) return;
+    if (!resumeTitle.trim()) return;
     try {
-      await createResume(resumeName);
+      await createResume(resumeTitle);
       await fetchResumes();
-      setResumeName("");
+      setResumeTitle("");
       closeModal();
     } catch (err) {
       alert("Error creating resume");
@@ -114,14 +116,19 @@ const Resumes: React.FC = () => {
                   </div>
 
                   <h2 className="font-bold flex-1 truncate">
-                    {r.name}
+                    {r.title}
                   </h2>
                 </div>
                 <div className={`flex items-center justify-between pt-4 border-t ${isDark ? 'border-zinc-800' : 'border-zinc-100'}`}>
                   <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Actions</span>
                   <div className="flex items-center gap-1">
                     <button className="p-2 rounded-lg hover:bg-zinc-500/10 text-green-500 cursor-pointer"><Eye className="w-4 h-4" /></button>
-                    <button className="p-2 rounded-lg hover:bg-zinc-500/10 text-blue-500 cursor-pointer"><Pencil className="w-4 h-4" /></button>
+                    <button 
+                      className="p-2 rounded-lg hover:bg-zinc-500/10 text-blue-500 cursor-pointer"
+                      onClick={() => navigate(`/edit-resume/${r.id}`)}
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
                     <button className="p-2 rounded-lg hover:bg-red-500/10 text-red-500 cursor-pointer" onClick={() => handleDelete(r.id)}>
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -146,7 +153,7 @@ const Resumes: React.FC = () => {
               <input 
                 placeholder="e.g., Software Engineer - Google" 
                 className={`w-full p-3 mb-4 rounded-xl border outline-none ${isDark ? 'bg-black border-zinc-800' : 'bg-zinc-50 border-zinc-200'}`}
-                value={resumeName} onChange={(e) => setResumeName(e.target.value)}
+                value={resumeTitle} onChange={(e) => setResumeTitle(e.target.value)}
               />
               <button onClick={handleCreate} className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold hover:bg-green-700">Create Resume</button>
             </div>
@@ -160,7 +167,7 @@ const Resumes: React.FC = () => {
               </div>
 
               <input 
-                placeholder="Give your resume a name" 
+                placeholder="Give your resume a title" 
                 className={`w-full p-3 mb-4 rounded-xl border outline-none ${isDark ? 'bg-black border-zinc-800' : 'bg-white border-zinc-200'}`}
               />
 

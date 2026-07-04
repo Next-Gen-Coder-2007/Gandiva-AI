@@ -10,15 +10,13 @@ class Resume(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     title = Column(String, nullable=False)
     profile_summary = Column(Text)
-    first_name = Column(String)
-    last_name = Column(String)
+    full_name = Column(String)
     email = Column(String)
     phone = Column(String)
     location = Column(String)
     linkedin = Column(String)
     github = Column(String)
     portfolio = Column(String)
-    website = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(
         DateTime(timezone=True),
