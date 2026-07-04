@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 class ResumeBase(BaseModel):
-    name: str
+    title: str
 
 class ResumeCreate(ResumeBase):
     pass

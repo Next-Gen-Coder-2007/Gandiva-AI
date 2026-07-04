@@ -11,7 +11,7 @@ router = APIRouter(prefix="/resumes", tags=["Resumes"])
 
 @router.post("", response_model=Resume, status_code=status.HTTP_201_CREATED)
 def create_resume(resume: ResumeCreate, db: Session = Depends(get_db),current_user: User = Depends(get_current_user)):
-    db_resume = ResumeModel(name=resume.name, user_id=current_user.id)
+    db_resume = ResumeModel(title=resume.title, user_id=current_user.id)
     db.add(db_resume)
     db.commit()
     db.refresh(db_resume)

@@ -17,6 +17,7 @@ const Resumes: React.FC = () => {
     setTimeout(() => setModalMode(null), 200);
   };
 
+
   useEffect(() => {
     if (modalMode) {
       setIsAnimating(true);
@@ -34,7 +35,9 @@ const Resumes: React.FC = () => {
     } catch (err) {
       console.error("Failed to fetch resumes");
     } finally {
-      setIsLoading(false);
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 1000);
     }
   };
 
