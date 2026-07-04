@@ -65,6 +65,22 @@ const Resumes: React.FC = () => {
     }
   };
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+  };
+
+  const formatRelativeTime = (dateString: string) => {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffInSeconds < 60) return "Just now";
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    return `${Math.floor(diffInSeconds / 86400)}d ago`;
+  };
+
   return (
     <div className={`min-h-screen p-4 sm:p-8 max-w-7xl mx-auto font-sans ${isDark ? 'bg-black text-white' : 'bg-white text-zinc-900'}`}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-10">
@@ -103,34 +119,63 @@ const Resumes: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {resumes.map((r: any) => (
-              <div key={r.id} className={`flex flex-col justify-between p-5 rounded-2xl border transition-all ${isDark ? 'bg-black border-zinc-800 hover:border-zinc-700' : 'bg-white border-zinc-200 hover:border-zinc-300'}`}>
-                <div className="flex items-center gap-4 mb-8">
-                  <div className={`p-3 rounded-xl ${isDark ? 'bg-zinc-900' : 'bg-zinc-100'}`}>
-                    <FileText className="w-6 h-6 text-green-500" />
-                  </div>
-
-                  <h2 className="font-bold flex-1 truncate">
-                    {r.title}
-                  </h2>
+          {resumes.map((r: any) => (
+            <div 
+              key={r.id} 
+              className={`group relative flex flex-col p-6 rounded-2xl border transition-all duration-300 
+                ${isDark 
+                  ? 'bg-zinc-900/40 border-zinc-800 hover:border-zinc-700' 
+                  : 'bg-white border-zinc-200 hover:border-zinc-300 shadow-sm'
+                }`}
+            >
+              <div className="flex items-start justify-between mb-8">
+                <div className={`p-3 rounded-xl border ${isDark ? 'bg-zinc-950 border-zinc-800' : 'bg-zinc-50 border-zinc-200'}`}>
+                  <FileText className="w-5 h-5 text-emerald-500" />
                 </div>
-                <div className={`flex items-center justify-between pt-4 border-t ${isDark ? 'border-zinc-800' : 'border-zinc-100'}`}>
-                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Actions</span>
-                  <div className="flex items-center gap-1">
-                    <button className="p-2 rounded-lg hover:bg-zinc-500/10 text-green-500 cursor-pointer"><Eye className="w-4 h-4" /></button>
-                    <button 
-                      className="p-2 rounded-lg hover:bg-zinc-500/10 text-blue-500 cursor-pointer"
-                      onClick={() => navigate(`/resumes/edit-resume/${r.id}`)}
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button className="p-2 rounded-lg hover:bg-red-500/10 text-red-500 cursor-pointer" onClick={() => handleDeleteClick(r.id)}>
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button 
+                    onClick={() => navigate(`/resumes/view/${r.id}`)}
+                    className={`p-2 rounded-lg transition-colors ${isDark ? 'text-zinc-400 hover:text-white hover:bg-zinc-800' : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100'}`}
+                    title="View"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={() => navigate(`/resumes/edit-resume/${r.id}`)}
+                    className={`p-2 rounded-lg transition-colors ${isDark ? 'text-zinc-400 hover:text-emerald-400 hover:bg-emerald-500/10' : 'text-zinc-500 hover:text-emerald-600 hover:bg-emerald-50'}`}
+                    title="Edit"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={() => handleDeleteClick(r.id)}
+                    className={`p-2 rounded-lg transition-colors ${isDark ? 'text-zinc-400 hover:text-red-400 hover:bg-red-500/10' : 'text-zinc-500 hover:text-red-600 hover:bg-red-50'}`}
+                    title="Delete"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-auto">
+                <h2 className={`font-semibold text-lg truncate mb-4 ${isDark ? 'text-white' : 'text-zinc-900'}`}>
+                  {r.title}
+                </h2>
+
+                <div className={`grid grid-cols-2 gap-4 pt-4 border-t ${isDark ? 'border-zinc-800' : 'border-zinc-100'}`}>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-zinc-400 font-bold mb-1">Created</p>
+                    <p className={`text-xs font-mono ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>{formatDate(r.created_at)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-zinc-400 font-bold mb-1">Updated</p>
+                    <p className={`text-xs font-mono ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>{formatRelativeTime(r.updated_at)}</p>
                   </div>
                 </div>
               </div>
-            ))}
+            </div>
+          ))}
           </div>
         )}
       </div>
