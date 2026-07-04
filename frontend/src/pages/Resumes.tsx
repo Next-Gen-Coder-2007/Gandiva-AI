@@ -1,33 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import ReactDOM from 'react-dom';
-import { PlusCircle, UploadCloud, FileText, LayoutGrid, X, Loader2, Eye, Pencil, Trash2 } from 'lucide-react';
+import { PlusCircle, UploadCloud, FileText, LayoutGrid, Loader2, Eye, Pencil, Trash2 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { createResume, getAllResumes, deleteResume } from '../services/resume';
 import { useNavigate } from 'react-router-dom';
+import Modal from '../components/Modal';
 
 const Resumes: React.FC = () => {
   const { isDark } = useTheme();
-  const [modalMode, setModalMode] = useState<'create' | 'upload' | null>(null);
-  const [isAnimating, setIsAnimating] = useState(false);
+  const [modalMode, setModalMode] = useState<'create' | 'upload' | 'confirmDelete' | null>(null);
   const [resumes, setResumes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [resumeTitle, setResumeTitle] = useState("");
   const navigate = useNavigate();
-
-  const closeModal = () => {
-    setIsAnimating(false);
-    setTimeout(() => setModalMode(null), 200);
-  };
-
-
-  useEffect(() => {
-    if (modalMode) {
-      setIsAnimating(true);
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-  }, [modalMode]);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [targetId, setTargetId] = useState<number | null>(null);
 
   const fetchResumes = async () => {
     setIsLoading(true);
@@ -48,25 +34,34 @@ const Resumes: React.FC = () => {
   }, []);
 
   const handleCreate = async () => {
-    if (!resumeTitle.trim()) return;
+    if (!resumeTitle.trim()) {
+      setErrorMessage("Title is required");
+      return;
+    }
     try {
       await createResume(resumeTitle);
       await fetchResumes();
       setResumeTitle("");
-      closeModal();
+      setModalMode(null);
+      setErrorMessage(null);
     } catch (err) {
-      alert("Error creating resume");
+      setErrorMessage("Failed to create resume. Please try again.");
     }
   };
 
-  const handleDelete = async (resumeId: number) => {
-    if (!window.confirm("Are you sure you want to delete this resume?")) return;
+  const handleDeleteClick = (id: number) => {
+    setTargetId(id);
+    setModalMode('confirmDelete');
+  };
 
+  const confirmDelete = async () => {
+    if (!targetId) return;
     try {
-      await deleteResume(resumeId);
+      await deleteResume(targetId);
       await fetchResumes();
+      setModalMode(null);
     } catch (err) {
-      alert("Error deleting resume");
+      setErrorMessage("Failed to delete resume.");
     }
   };
 
@@ -125,11 +120,11 @@ const Resumes: React.FC = () => {
                     <button className="p-2 rounded-lg hover:bg-zinc-500/10 text-green-500 cursor-pointer"><Eye className="w-4 h-4" /></button>
                     <button 
                       className="p-2 rounded-lg hover:bg-zinc-500/10 text-blue-500 cursor-pointer"
-                      onClick={() => navigate(`/edit-resume/${r.id}`)}
+                      onClick={() => navigate(`/resumes/edit-resume/${r.id}`)}
                     >
                       <Pencil className="w-4 h-4" />
                     </button>
-                    <button className="p-2 rounded-lg hover:bg-red-500/10 text-red-500 cursor-pointer" onClick={() => handleDelete(r.id)}>
+                    <button className="p-2 rounded-lg hover:bg-red-500/10 text-red-500 cursor-pointer" onClick={() => handleDeleteClick(r.id)}>
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -140,54 +135,87 @@ const Resumes: React.FC = () => {
         )}
       </div>
 
-      {modalMode && ReactDOM.createPortal(
-        <div className={`fixed inset-0 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm transition-opacity duration-200 ${isAnimating ? 'opacity-100' : 'opacity-0'}`}>
-          <div className="absolute inset-0 bg-black/60" onClick={closeModal} />
-          
-          {modalMode === 'create' && (
-            <div className={`relative w-full max-w-sm p-6 rounded-3xl border shadow-2xl ${isDark ? 'bg-zinc-950 border-zinc-800' : 'bg-white border-zinc-200'}`}>
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-bold">Create New Resume</h3>
-                <button onClick={closeModal}><X className="w-5 h-5 opacity-50" /></button>
+      <Modal 
+        isOpen={!!modalMode} 
+        onClose={() => setModalMode(null)} 
+        title={modalMode === 'create' ? 'Create New Resume' : modalMode === 'confirmDelete' ? 'Confirm Delete' : 'Upload Resume'}
+      >
+        {errorMessage && (
+          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl text-sm">
+            {errorMessage}
+          </div>
+        )}
+
+        {modalMode === 'confirmDelete' && (
+          <div className="space-y-6">
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-red-100 dark:bg-red-900/20 rounded-full shrink-0">
+                <Trash2 className="w-6 h-6 text-red-600 dark:text-red-500" />
               </div>
-              <input 
-                placeholder="e.g., Software Engineer - Google" 
-                className={`w-full p-3 mb-4 rounded-xl border outline-none ${isDark ? 'bg-black border-zinc-800' : 'bg-zinc-50 border-zinc-200'}`}
-                value={resumeTitle} onChange={(e) => setResumeTitle(e.target.value)}
-              />
-              <button onClick={handleCreate} className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold hover:bg-green-700">Create Resume</button>
+              
+              <div>
+                <h3 className="text-lg font-bold">Delete Resume</h3>
+                <p className={`mt-1 text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                  Are you sure you want to permanently delete this resume? This action will remove all associated data and 
+                  <span className="font-semibold text-red-500"> cannot be undone</span>.
+                </p>
+              </div>
             </div>
-          )}
 
-          {modalMode === 'upload' && (
-            <div className={`relative w-full max-w-sm p-6 rounded-3xl border shadow-2xl ${isDark ? 'bg-black border-zinc-800' : 'bg-white border-zinc-200'}`}>
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-bold">Upload Resume</h3>
-                <button onClick={closeModal}><X className="w-5 h-5 opacity-50" /></button>
-              </div>
-
-              <input 
-                placeholder="Give your resume a title" 
-                className={`w-full p-3 mb-4 rounded-xl border outline-none ${isDark ? 'bg-black border-zinc-800' : 'bg-white border-zinc-200'}`}
-              />
-
-              <div className={`relative border-2 border-dashed rounded-2xl p-8 mb-6 flex flex-col items-center justify-center cursor-pointer transition-colors ${isDark ? 'border-zinc-800 hover:border-zinc-700' : 'border-zinc-200 hover:border-zinc-300'}`}>
-                <UploadCloud className="w-8 h-8 text-green-500 mb-3" />
-                <p className="text-sm font-medium">Click or drag & drop</p>
-                <p className="text-xs text-zinc-500 mt-1">PDF, DOCX up to 10MB</p>
-                <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" />
-              </div>
-
-              <button className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold hover:bg-green-700 transition-colors">
-                Upload File
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+              <button 
+                onClick={() => setModalMode(null)} 
+                className={`px-5 py-2.5 rounded-xl font-semibold transition-colors ${
+                  isDark 
+                    ? 'bg-zinc-800 hover:bg-zinc-700 text-white' 
+                    : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-900'
+                }`}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={confirmDelete} 
+                className="px-5 py-2.5 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-700 transition-colors shadow-sm shadow-red-900/20"
+              >
+                Delete Forever
               </button>
             </div>
-          )}
-        </div>,
-        document.body
-      )}
+          </div>
+        )}
+
+        {modalMode === 'create' && (
+          <>
+            <input 
+              placeholder="e.g., Software Engineer - Google" 
+              className={`w-full p-3 mb-4 rounded-xl border outline-none ${isDark ? 'bg-black border-zinc-800' : 'bg-zinc-50 border-zinc-200'}`}
+              value={resumeTitle} onChange={(e) => setResumeTitle(e.target.value)}
+            />
+            <button onClick={handleCreate} className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold hover:bg-green-700">Create Resume</button>
+            </>
+        )}
+
+        {modalMode === 'upload' && (
+          <>
+            <input 
+              placeholder="Give your resume a title" 
+              className={`w-full p-3 mb-4 rounded-xl border outline-none ${isDark ? 'bg-black border-zinc-800' : 'bg-white border-zinc-200'}`}
+            />
+
+            <div className={`relative border-2 border-dashed rounded-2xl p-8 mb-6 flex flex-col items-center justify-center cursor-pointer transition-colors ${isDark ? 'border-zinc-800 hover:border-zinc-700' : 'border-zinc-200 hover:border-zinc-300'}`}>
+              <UploadCloud className="w-8 h-8 text-green-500 mb-3" />
+              <p className="text-sm font-medium">Click or drag & drop</p>
+              <p className="text-xs text-zinc-500 mt-1">PDF, DOCX up to 10MB</p>
+              <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" />
+            </div>
+
+            <button className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold hover:bg-green-700 transition-colors">
+              Upload File
+            </button>
+          </>
+        )}
+      </Modal>
     </div>
   );
-};
+}
 
 export default Resumes;

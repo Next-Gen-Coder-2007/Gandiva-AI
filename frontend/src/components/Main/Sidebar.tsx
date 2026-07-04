@@ -79,13 +79,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
 
         <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
-            const isActive = location.pathname === item.path;
+            const isActive = location.pathname.startsWith(item.path);
             const Icon = item.icon;
             return (
               <Link
                 key={item.name}
                 to={item.path}
-                onClick={() => setIsOpen(false)} // Added to close on mobile
+                onClick={() => setIsOpen(false)}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium transition-colors duration-200 ${
                   isActive
                     ? isDark ? 'bg-green-500/10 text-green-400' : 'bg-green-50 text-green-600'
@@ -103,17 +103,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
           <div className="space-y-1">
             <Link
               to="/settings"
-              onClick={() => setIsOpen(false)} // Added to close on mobile
+              onClick={() => setIsOpen(false)}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium transition-colors duration-200 ${
-                location.pathname === '/settings'
+                location.pathname.startsWith('/settings')
                   ? isDark ? 'bg-green-500/10 text-green-400' : 'bg-green-50 text-green-600'
                   : isDark ? 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100' : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900'
               }`}
             >
-              <Settings className={`w-5 h-5 ${location.pathname === '/settings' ? 'text-inherit' : 'opacity-70'}`} />
+              <Settings className={`w-5 h-5 ${location.pathname.startsWith('/settings') ? 'text-inherit' : 'opacity-70'}`} />
               Settings
             </Link>
-            
             <button
               onClick={handleLogout}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium transition-colors duration-200 ${

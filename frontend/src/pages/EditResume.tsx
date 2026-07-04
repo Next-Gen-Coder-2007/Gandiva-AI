@@ -35,10 +35,10 @@ const EditResume: React.FC = () => {
   return (
     <div className={`min-h-screen p-4 sm:p-8 ${isDark ? 'bg-black text-white' : 'bg-white text-zinc-900'}`}>
       <button 
-        onClick={() => navigate('/dashboard')} 
+        onClick={() => navigate('/resumes')} 
         className="flex items-center gap-2 mb-8 opacity-60 hover:opacity-100 transition-opacity"
       >
-        <ChevronLeft className="w-4 h-4" /> Back to dashboard
+        <ChevronLeft className="w-4 h-4" /> Back to resumes
       </button>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl mx-auto">
