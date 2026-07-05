@@ -4,8 +4,15 @@ export const createResume = async (title: string) => {
   return await api.post("/resumes", { title });
 };
 
+export const uploadResume = async (title: string, file: File) => {
+  const formData = new FormData();
+  formData.append("title", title);
+  formData.append("file", file);
+  return await api.post("/resumes/upload", formData);
+}
+
 export const deleteResume = async (resumeId: number) => {
-  return await api.post(`/resumes/${resumeId}/delete`);
+  return await api.delete(`/resumes/${resumeId}`);
 }
 
 export const getAllResumes = async () => {
@@ -53,3 +60,4 @@ export const updateResumeTheme = async (resumeId: number, theme: any, themeColor
     theme, themeColor
   })
 }
+

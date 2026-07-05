@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PlusCircle, UploadCloud, FileText, LayoutGrid, Loader2, Eye, Pencil, Trash2 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import { createResume, getAllResumes, deleteResume } from '../services/resume';
+import { createResume, getAllResumes, deleteResume, uploadResume } from '../services/resume';
 import { useNavigate } from 'react-router-dom';
 import Modal from '../components/Modal';
 
@@ -9,11 +9,15 @@ const Resumes: React.FC = () => {
   const { isDark } = useTheme();
   const [modalMode, setModalMode] = useState<'create' | 'upload' | 'confirmDelete' | null>(null);
   const [resumes, setResumes] = useState([]);
+
   const [isLoading, setIsLoading] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
   const [resumeTitle, setResumeTitle] = useState("");
-  const navigate = useNavigate();
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [targetId, setTargetId] = useState<number | null>(null);
+
+  const navigate = useNavigate();
 
   const fetchResumes = async () => {
     setIsLoading(true);
@@ -33,6 +37,13 @@ const Resumes: React.FC = () => {
     fetchResumes();
   }, []);
 
+  const closeModal = () => {
+    setModalMode(null);
+    setResumeTitle("");
+    setSelectedFile(null);
+    setErrorMessage(null);
+  };
+
   const handleCreate = async () => {
     if (!resumeTitle.trim()) {
       setErrorMessage("Title is required");
@@ -41,11 +52,33 @@ const Resumes: React.FC = () => {
     try {
       await createResume(resumeTitle);
       await fetchResumes();
-      setResumeTitle("");
-      setModalMode(null);
-      setErrorMessage(null);
+      closeModal();
     } catch (err) {
       setErrorMessage("Failed to create resume. Please try again.");
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!resumeTitle.trim()) {
+      setErrorMessage("Title is required");
+      return;
+    }
+    if (!selectedFile) {
+      setErrorMessage("Please select a PDF file to upload");
+      return;
+    }
+
+    setIsUploading(true);
+    setErrorMessage(null);
+
+    try {
+      await uploadResume(resumeTitle, selectedFile);
+      await fetchResumes();
+      closeModal();
+    } catch (err: any) {
+      setErrorMessage(err.response?.data?.detail || "Failed to upload and parse resume.");
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -186,7 +219,7 @@ const Resumes: React.FC = () => {
 
       <Modal 
         isOpen={!!modalMode} 
-        onClose={() => setModalMode(null)} 
+        onClose={closeModal} 
         title={modalMode === 'create' ? 'Create New Resume' : modalMode === 'confirmDelete' ? 'Confirm Delete' : 'Upload Resume'}
       >
         {errorMessage && (
@@ -213,7 +246,7 @@ const Resumes: React.FC = () => {
 
             <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
               <button 
-                onClick={() => setModalMode(null)} 
+                onClick={closeModal} 
                 className={`px-5 py-2.5 rounded-xl font-semibold transition-colors ${
                   isDark 
                     ? 'bg-zinc-800 hover:bg-zinc-700 text-white' 
@@ -248,17 +281,42 @@ const Resumes: React.FC = () => {
             <input 
               placeholder="Give your resume a title" 
               className={`w-full p-3 mb-4 rounded-xl border outline-none ${isDark ? 'bg-black border-zinc-800' : 'bg-white border-zinc-200'}`}
+              value={resumeTitle}
+              onChange={(e) => setResumeTitle(e.target.value)}
+              disabled={isUploading}
             />
 
-            <div className={`relative border-2 border-dashed rounded-2xl p-8 mb-6 flex flex-col items-center justify-center cursor-pointer transition-colors ${isDark ? 'border-zinc-800 hover:border-zinc-700' : 'border-zinc-200 hover:border-zinc-300'}`}>
-              <UploadCloud className="w-8 h-8 text-green-500 mb-3" />
-              <p className="text-sm font-medium">Click or drag & drop</p>
-              <p className="text-xs text-zinc-500 mt-1">PDF, DOCX up to 10MB</p>
-              <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" />
+            <div className={`relative border-2 border-dashed rounded-2xl p-8 mb-6 flex flex-col items-center justify-center transition-colors 
+              ${isDark ? 'border-zinc-800 hover:border-zinc-700' : 'border-zinc-200 hover:border-zinc-300'}
+              ${selectedFile ? 'bg-green-500/10 border-green-500' : ''}`}
+            >
+              <UploadCloud className={`w-8 h-8 mb-3 ${selectedFile ? 'text-green-500' : 'text-zinc-400'}`} />
+              <p className="text-sm font-medium text-center truncate w-full px-4">
+                {selectedFile ? selectedFile.name : "Click or drag & drop"}
+              </p>
+              <p className="text-xs text-zinc-500 mt-1">PDF up to 10MB</p>
+              <input 
+                type="file" 
+                accept=".pdf"
+                className="absolute inset-0 opacity-0 cursor-pointer" 
+                onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                disabled={isUploading}
+              />
             </div>
 
-            <button className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold hover:bg-green-700 transition-colors">
-              Upload File
+            <button 
+              onClick={handleUpload}
+              disabled={isUploading}
+              className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Parsing with AI...
+                </>
+              ) : (
+                "Upload & Parse File"
+              )}
             </button>
           </>
         )}

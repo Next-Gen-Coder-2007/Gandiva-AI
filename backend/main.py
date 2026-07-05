@@ -4,6 +4,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from db.database import Base, engine
 from routes import auth, google, contact, resume
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 app = FastAPI()
 
 Base.metadata.create_all(bind=engine)

@@ -1,17 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+import io
+import PyPDF2
+from datetime import datetime
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Form
 from sqlalchemy.orm import Session, selectinload
 from typing import List
 from db.database import get_db
-from models.resume import (
-    Resume as ResumeModel, Skill, Language, Education, 
-    Experience, Project, Achievement, Certificate
-)
-from schemas.resume import (
-    PersonalInfoSchema, Resume, ResumeCreate, ResumeBase, SkillSchema, LanguageSchema, 
-    EducationSchema, ExperienceSchema, ProjectSchema, 
-    AchievementSchema, CertificateSchema
-)
+from models.resume import Resume as ResumeModel, Skill, Language, Education, Experience, Project, Achievement, Certificate
+from schemas.resume import PersonalInfoSchema, Resume, ResumeCreate, ResumeBase, SkillSchema, LanguageSchema, EducationSchema, ExperienceSchema, ProjectSchema, AchievementSchema, CertificateSchema
 from services.auth import get_current_user
+from services.resume import extract_data_with_gemini
 from models.user import User
 
 router = APIRouter(prefix="/resumes", tags=["Resumes"])
@@ -32,6 +29,80 @@ def create_resume(resume: ResumeCreate, db: Session = Depends(get_db), current_u
 @router.get("", response_model=List[Resume])
 def get_user_resumes(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return db.query(ResumeModel).filter(ResumeModel.user_id == current_user.id).all()
+
+@router.post("/upload", response_model=Resume, status_code=status.HTTP_201_CREATED)
+async def upload_and_parse_resume(title: str = Form(...), file: UploadFile = File(...), db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if not file.filename.endswith('.pdf'):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported")
+
+    try:
+        content = await file.read()
+        pdf_reader = PyPDF2.PdfReader(io.BytesIO(content))
+        extracted_text = ""
+        for page in pdf_reader.pages:
+            text = page.extract_text()
+            if text:
+                extracted_text += text + "\n"
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to read PDF: {str(e)}")
+
+    if not extracted_text.strip():
+        raise HTTPException(status_code=400, detail="The PDF contains no readable text.")
+
+    parsed_data = extract_data_with_gemini(extracted_text)
+
+    db_resume = ResumeModel(
+        user_id=current_user.id,
+        title=title,
+        profile_summary=parsed_data.get("profile_summary"),
+        full_name=parsed_data.get("full_name"),
+        email=parsed_data.get("email"),
+        phone=parsed_data.get("phone"),
+        location=parsed_data.get("location"),
+        linkedin=parsed_data.get("linkedin"),
+        github=parsed_data.get("github"),
+        portfolio=parsed_data.get("portfolio"),
+    )
+    db.add(db_resume)
+    db.flush()
+
+    relations_map = {
+        "skills": Skill,
+        "languages": Language,
+        "educations": Education,
+        "experiences": Experience,
+        "projects": Project,
+        "achievements": Achievement,
+        "certificates": Certificate
+    }
+
+    for key, model_class in relations_map.items():
+        items = parsed_data.get(key, [])
+        if items:
+            for item in items:
+                for date_field in ['start_date', 'end_date', 'issue_date']:
+                    if date_field in item and item[date_field]:
+                        try:
+                            item[date_field] = datetime.strptime(item[date_field], "%Y-%m-%d").date()
+                        except ValueError:
+                            item[date_field] = None
+            db_items = [model_class(**item, resume_id=db_resume.id) for item in items]
+            db.add_all(db_items)
+
+    db.commit()
+    db.refresh(db_resume)
+
+    complete_resume = db.query(ResumeModel).options(
+        selectinload(ResumeModel.skills), 
+        selectinload(ResumeModel.languages),
+        selectinload(ResumeModel.educations), 
+        selectinload(ResumeModel.experiences),
+        selectinload(ResumeModel.projects), 
+        selectinload(ResumeModel.achievements),
+        selectinload(ResumeModel.certificates)
+    ).filter(ResumeModel.id == db_resume.id).first()
+
+    return complete_resume
 
 @router.get("/{resume_id}", response_model=Resume)
 def get_resume(resume_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
