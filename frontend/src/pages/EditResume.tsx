@@ -12,6 +12,8 @@ import ProjectForm from '../components/forms/ProjectsForm';
 import AchievementForm from '../components/forms/AchievementsForm';
 import CertificateForm from '../components/forms/CertificatesForm';
 
+import ResumePreview from '../components/ResumePreview';
+
 import { getResumeById } from '../services/resume';
 
 const EditResume: React.FC = () => {
@@ -41,6 +43,14 @@ const EditResume: React.FC = () => {
       [section]: updatedData,
     }));
   };
+
+  if (!resumeData) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center ${isDark ? 'bg-black text-white' : 'bg-white text-zinc-900'}`}>
+        <p className="animate-pulse">Loading resume data...</p>
+      </div>
+    );
+  }
 
   const sections = [
     { 
@@ -109,10 +119,10 @@ const EditResume: React.FC = () => {
           {sections[activeStep].component}
         </div>
 
-        <div className={`sticky top-24 border-2 border-dashed rounded-3xl h-[600px] flex items-center justify-center ${
-            isDark ? 'border-zinc-800 bg-zinc-900/20 text-zinc-600' : 'border-zinc-200 bg-zinc-50 text-zinc-400'
+        <div className={`sticky top-24 rounded-3xl h-[800px] overflow-hidden border ${
+            isDark ? 'border-zinc-800 shadow-[0_0_15px_rgba(0,0,0,0.5)]' : 'border-zinc-300 shadow-xl'
         }`}>
-            <p>Resume Preview (Implemented in future)</p>
+            <ResumePreview data={resumeData} />
         </div>
       </div>
     </div>

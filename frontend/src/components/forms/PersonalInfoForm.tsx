@@ -37,6 +37,8 @@ const PersonalInfoForm: React.FC<Props> = ({ id, data, onUpdate }) => {
     profile_summary: '', linkedin: '', github: '', portfolio: '',
   });
 
+  console.log(formData)
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     const updatedData = { ...formData, [name]: value };
