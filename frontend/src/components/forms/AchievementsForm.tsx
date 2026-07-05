@@ -16,25 +16,21 @@ interface Props {
 const AchievementsForm: React.FC<Props> = ({ id, data }) => {
   const { isDark } = useTheme();
   
+  // Single state source of truth
   const [achievements, setAchievements] = useState<Achievement[]>([]);
-  const [formData, setFormData] = useState<Achievement>({ title: '', description: '' });
+  // Local state for the current "drafting" achievement
+  const [current, setCurrent] = useState<Achievement>({ title: '', description: '' });
 
-  // Sync state with parent data
   useEffect(() => {
     if (data && Array.isArray(data)) {
       setAchievements(data);
     }
   }, [data]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
   const addAchievement = () => {
-    if (formData.title.trim()) {
-      setAchievements([...achievements, formData]);
-      setFormData({ title: '', description: '' });
+    if (current.title.trim()) {
+      setAchievements([...achievements, current]);
+      setCurrent({ title: '', description: '' }); // Clear inputs after adding
     }
   };
 
@@ -44,44 +40,37 @@ const AchievementsForm: React.FC<Props> = ({ id, data }) => {
 
   const handleSave = async () => {
     try {
-      await updateResumeAchievements(id, formData);
+      await updateResumeAchievements(id, achievements);
     } catch(err: any) {
       console.log("Error updating Achievements", err.response?.detail);
     }
   }
 
   const inputClass = `w-full p-3 rounded-xl border outline-none transition-colors ${
-    isDark 
-      ? 'bg-black border-zinc-800 text-white focus:border-green-500' 
-      : 'bg-zinc-50 border-zinc-200 text-zinc-900 focus:border-green-500'
+    isDark ? 'bg-black border-zinc-800 text-white focus:border-green-500' : 'bg-zinc-50 border-zinc-200 text-zinc-900 focus:border-green-500'
   }`;
-
   const labelClass = `block text-sm font-semibold mb-2 ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`;
 
   return (
     <div className="space-y-6">
-      
-      {/* Input Section */}
       <div className="space-y-4">
         <div>
           <label className={labelClass}>Title</label>
           <input 
-            name="title"
             type="text" 
             placeholder="e.g., Winner of Hackathon 2026" 
             className={inputClass}
-            value={formData.title}
-            onChange={handleChange}
+            value={current.title}
+            onChange={(e) => setCurrent({...current, title: e.target.value})}
           />
         </div>
         <div>
           <label className={labelClass}>Description</label>
           <textarea 
-            name="description"
-            placeholder="Describe your achievement and the impact..." 
+            placeholder="Describe your achievement..." 
             className={`${inputClass} h-24 resize-none`}
-            value={formData.description}
-            onChange={handleChange}
+            value={current.description}
+            onChange={(e) => setCurrent({...current, description: e.target.value})}
           />
         </div>
         <button 
@@ -92,13 +81,9 @@ const AchievementsForm: React.FC<Props> = ({ id, data }) => {
         </button>
       </div>
 
-      {/* Dynamic List Display */}
       <div className="space-y-3">
         {achievements.map((item, index) => (
-          <div 
-            key={index} 
-            className={`p-4 rounded-xl border flex justify-between items-start ${isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-zinc-50 border-zinc-200'}`}
-          >
+          <div key={index} className={`p-4 rounded-xl border flex justify-between items-start ${isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-zinc-50 border-zinc-200'}`}>
             <div>
               <p className="font-bold">{item.title}</p>
               <p className="text-sm opacity-70 mt-1">{item.description}</p>

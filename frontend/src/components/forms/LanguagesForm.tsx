@@ -17,7 +17,7 @@ const LanguagesForm: React.FC<Props> = ({ id, data }) => {
   const { isDark } = useTheme();
   
   const [languagesList, setLanguagesList] = useState<Language[]>([]);
-  const [formData, setFormData] = useState<Language>({ language: '', proficiency: '' });
+  const [current, setCurrent] = useState<Language>({ language: '', proficiency: '' });
 
   useEffect(() => {
     if (data && Array.isArray(data)) {
@@ -25,15 +25,10 @@ const LanguagesForm: React.FC<Props> = ({ id, data }) => {
     }
   }, [data]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
   const addLanguage = () => {
-    if (formData.language.trim() && formData.proficiency.trim()) {
-      setLanguagesList([...languagesList, formData]);
-      setFormData({ language: '', proficiency: '' });
+    if (current.language.trim() && current.proficiency.trim()) {
+      setLanguagesList([...languagesList, current]);
+      setCurrent({ language: '', proficiency: '' });
     }
   };
 
@@ -43,7 +38,7 @@ const LanguagesForm: React.FC<Props> = ({ id, data }) => {
 
   const handleSave = async () => {
     try {
-      await updateResumeLanguages(id, formData);
+      await updateResumeLanguages(id, languagesList);
     } catch (error: any) {
       console.error('Error saving languages:', error.response?.data || error.message);
     }
@@ -57,23 +52,19 @@ const LanguagesForm: React.FC<Props> = ({ id, data }) => {
 
   return (
     <div className="space-y-6">
-
-      {/* Input Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <input 
-          name="language"
           placeholder="Language (e.g., English)" 
           className={inputClass}
-          value={formData.language}
-          onChange={handleChange}
+          value={current.language}
+          onChange={(e) => setCurrent({...current, language: e.target.value})}
         />
         <div className="flex gap-2">
           <input 
-            name="proficiency"
             placeholder="Proficiency (e.g., Native)" 
             className={inputClass}
-            value={formData.proficiency}
-            onChange={handleChange}
+            value={current.proficiency}
+            onChange={(e) => setCurrent({...current, proficiency: e.target.value})}
           />
           <button 
             onClick={addLanguage}
@@ -84,7 +75,6 @@ const LanguagesForm: React.FC<Props> = ({ id, data }) => {
         </div>
       </div>
 
-      {/* List Display */}
       <div className="space-y-2">
         {languagesList.map((item, index) => (
           <div 

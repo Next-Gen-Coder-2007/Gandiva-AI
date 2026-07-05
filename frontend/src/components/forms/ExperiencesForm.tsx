@@ -22,32 +22,20 @@ const ExperiencesForm: React.FC<Props> = ({ id, data }) => {
   const { isDark } = useTheme();
   
   const [experiences, setExperiences] = useState<Experience[]>([]);
-  const [formData, setFormData] = useState<Experience>({
+  const [current, setCurrent] = useState<Experience>({
     company: '', role: '', location: '', start_date: '', end_date: '', currently_working: false, description: ''
   });
 
-  // Sync state with incoming parent data
   useEffect(() => {
     if (data && Array.isArray(data)) {
       setExperiences(data);
     }
   }, [data]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target;
-    
-    if (type === 'checkbox') {
-      const target = e.target as HTMLInputElement;
-      setFormData(prev => ({ ...prev, [name]: target.checked }));
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
-    }
-  };
-
   const addExperience = () => {
-    if (formData.company.trim() && formData.role.trim()) {
-      setExperiences([...experiences, formData]);
-      setFormData({ company: '', role: '', location: '', start_date: '', end_date: '', currently_working: false, description: '' });
+    if (current.company.trim() && current.role.trim()) {
+      setExperiences([...experiences, current]);
+      setCurrent({ company: '', role: '', location: '', start_date: '', end_date: '', currently_working: false, description: '' });
     }
   };
 
@@ -56,8 +44,8 @@ const ExperiencesForm: React.FC<Props> = ({ id, data }) => {
   };
 
   const handleSave = async () => {
-    try  {
-      await updateResumeExperiences(id, formData);
+    try {
+      await updateResumeExperiences(id, experiences);
     } catch (error: any) {
       console.error('Error saving experiences:', error.response?.data || error.message);
     }
@@ -71,40 +59,38 @@ const ExperiencesForm: React.FC<Props> = ({ id, data }) => {
 
   return (
     <div className="space-y-6">
-      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className={labelClass}>Company</label>
-          <input name="company" className={inputClass} value={formData.company} onChange={handleChange} placeholder="Company Name" />
+          <input className={inputClass} value={current.company} onChange={(e) => setCurrent({...current, company: e.target.value})} placeholder="Company Name" />
         </div>
         <div>
           <label className={labelClass}>Role</label>
-          <input name="role" className={inputClass} value={formData.role} onChange={handleChange} placeholder="Job Title" />
+          <input className={inputClass} value={current.role} onChange={(e) => setCurrent({...current, role: e.target.value})} placeholder="Job Title" />
         </div>
       </div>
 
       <div>
         <label className={labelClass}>Location</label>
-        <input name="location" className={inputClass} value={formData.location} onChange={handleChange} placeholder="City, Country" />
+        <input className={inputClass} value={current.location} onChange={(e) => setCurrent({...current, location: e.target.value})} placeholder="City, Country" />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className={labelClass}>Start Date</label>
-          <input name="start_date" type="date" className={inputClass} value={formData.start_date} onChange={handleChange} />
+          <input type="date" className={inputClass} value={current.start_date} onChange={(e) => setCurrent({...current, start_date: e.target.value})} />
         </div>
         <div>
           <label className={labelClass}>End Date</label>
-          <input name="end_date" type="date" className={inputClass} value={formData.end_date} onChange={handleChange} disabled={formData.currently_working} />
+          <input type="date" className={inputClass} value={current.end_date} onChange={(e) => setCurrent({...current, end_date: e.target.value})} disabled={current.currently_working} />
         </div>
       </div>
 
       <div className="flex items-center gap-2">
         <input 
-          name="currently_working"
           type="checkbox" 
-          checked={formData.currently_working}
-          onChange={handleChange}
+          checked={current.currently_working}
+          onChange={(e) => setCurrent({...current, currently_working: e.target.checked})}
           className="w-4 h-4 accent-green-600"
         />
         <label className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>I am currently working here</label>
@@ -112,14 +98,13 @@ const ExperiencesForm: React.FC<Props> = ({ id, data }) => {
 
       <div>
         <label className={labelClass}>Description</label>
-        <textarea name="description" className={`${inputClass} h-24`} value={formData.description} onChange={handleChange} placeholder="Key responsibilities..." />
+        <textarea className={`${inputClass} h-24`} value={current.description} onChange={(e) => setCurrent({...current, description: e.target.value})} placeholder="Key responsibilities..." />
       </div>
 
       <button onClick={addExperience} className="flex items-center justify-center gap-2 w-full py-3 bg-zinc-900 text-white rounded-xl font-semibold hover:bg-black transition-colors">
         <Plus className="w-4 h-4" /> Add Experience
       </button>
 
-      {/* Dynamic List */}
       <div className="space-y-3 mt-4">
         {experiences.map((item, index) => (
           <div key={index} className={`p-4 rounded-xl border flex justify-between items-start ${isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-zinc-50 border-zinc-200'}`}>

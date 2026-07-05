@@ -22,7 +22,7 @@ const EducationsForm: React.FC<Props> = ({ id, data }) => {
   const { isDark } = useTheme();
   
   const [educations, setEducations] = useState<Education[]>([]);
-  const [formData, setFormData] = useState<Education>({
+  const [current, setCurrent] = useState<Education>({
     institution: '', degree: '', field_of_study: '', start_date: '', end_date: '', grade: '', description: ''
   });
 
@@ -32,15 +32,10 @@ const EducationsForm: React.FC<Props> = ({ id, data }) => {
     }
   }, [data]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
   const addEducation = () => {
-    if (formData.institution.trim() && formData.degree.trim()) {
-      setEducations([...educations, formData]);
-      setFormData({ institution: '', degree: '', field_of_study: '', start_date: '', end_date: '', grade: '', description: '' });
+    if (current.institution.trim() && current.degree.trim()) {
+      setEducations([...educations, current]);
+      setCurrent({ institution: '', degree: '', field_of_study: '', start_date: '', end_date: '', grade: '', description: '' });
     }
   };
 
@@ -50,7 +45,7 @@ const EducationsForm: React.FC<Props> = ({ id, data }) => {
 
   const handleSave = async () => {
     try {
-      await updateResumeEducations(id, formData);
+      await updateResumeEducations(id, educations);
     } catch (error: any) {
       console.error('Error saving educations:', error.response?.data || error.message);
     }
@@ -66,44 +61,42 @@ const EducationsForm: React.FC<Props> = ({ id, data }) => {
 
   return (
     <div className="space-y-6">
-      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className={labelClass}>Institution</label>
-          <input name="institution" className={inputClass} value={formData.institution} onChange={handleChange} placeholder="University Name" />
+          <input className={inputClass} value={current.institution} onChange={(e) => setCurrent({...current, institution: e.target.value})} placeholder="University Name" />
         </div>
         <div>
           <label className={labelClass}>Degree</label>
-          <input name="degree" className={inputClass} value={formData.degree} onChange={handleChange} placeholder="e.g., B.Sc" />
+          <input className={inputClass} value={current.degree} onChange={(e) => setCurrent({...current, degree: e.target.value})} placeholder="e.g., B.Sc" />
         </div>
         <div>
           <label className={labelClass}>Field of Study</label>
-          <input name="field_of_study" className={inputClass} value={formData.field_of_study} onChange={handleChange} placeholder="e.g., Computer Science" />
+          <input className={inputClass} value={current.field_of_study} onChange={(e) => setCurrent({...current, field_of_study: e.target.value})} placeholder="e.g., Computer Science" />
         </div>
         <div>
           <label className={labelClass}>Grade / GPA</label>
-          <input name="grade" className={inputClass} value={formData.grade} onChange={handleChange} placeholder="e.g., 3.8/4.0" />
+          <input className={inputClass} value={current.grade} onChange={(e) => setCurrent({...current, grade: e.target.value})} placeholder="e.g., 3.8/4.0" />
         </div>
         <div>
           <label className={labelClass}>Start Date</label>
-          <input name="start_date" type="date" className={inputClass} value={formData.start_date} onChange={handleChange} />
+          <input type="date" className={inputClass} value={current.start_date} onChange={(e) => setCurrent({...current, start_date: e.target.value})} />
         </div>
         <div>
           <label className={labelClass}>End Date</label>
-          <input name="end_date" type="date" className={inputClass} value={formData.end_date} onChange={handleChange} />
+          <input type="date" className={inputClass} value={current.end_date} onChange={(e) => setCurrent({...current, end_date: e.target.value})} />
         </div>
       </div>
 
       <div>
         <label className={labelClass}>Description</label>
-        <textarea name="description" className={`${inputClass} h-24`} value={formData.description} onChange={handleChange} placeholder="Relevant coursework..." />
+        <textarea className={`${inputClass} h-24`} value={current.description} onChange={(e) => setCurrent({...current, description: e.target.value})} placeholder="Relevant coursework..." />
       </div>
 
       <button onClick={addEducation} className="flex items-center justify-center gap-2 w-full py-3 bg-zinc-900 text-white rounded-xl font-semibold hover:bg-black transition-colors">
         <Plus className="w-4 h-4" /> Add Education
       </button>
 
-      {/* Dynamic List */}
       <div className="space-y-3 mt-4">
         {educations.map((item, index) => (
           <div key={index} className={`p-4 rounded-xl border flex justify-between items-start ${isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-zinc-50 border-zinc-200'}`}>

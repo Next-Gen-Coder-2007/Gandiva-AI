@@ -17,8 +17,7 @@ const SkillsForm: React.FC<Props> = ({ id, data }) => {
   const { isDark } = useTheme();
   
   const [skillsList, setSkillsList] = useState<SkillItem[]>([]);
-  const [category, setCategory] = useState('');
-  const [skill, setSkill] = useState('');
+  const [current, setCurrent] = useState<SkillItem>({ category: '', skill: '' });
 
   useEffect(() => {
     if (data && Array.isArray(data)) {
@@ -27,9 +26,9 @@ const SkillsForm: React.FC<Props> = ({ id, data }) => {
   }, [data]);
 
   const addSkill = () => {
-    if (category.trim() && skill.trim()) {
-      setSkillsList([...skillsList, { category: category.trim(), skill: skill.trim() }]);
-      setSkill('');
+    if (current.category.trim() && current.skill.trim()) {
+      setSkillsList([...skillsList, current]);
+      setCurrent({ ...current, skill: '' });
     }
   };
 
@@ -53,20 +52,19 @@ const SkillsForm: React.FC<Props> = ({ id, data }) => {
 
   return (
     <div className="space-y-6">
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <input 
           placeholder="Category (e.g., Frontend)" 
           className={inputClass}
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
+          value={current.category}
+          onChange={(e) => setCurrent({...current, category: e.target.value})}
         />
         <div className="flex gap-2">
           <input 
             placeholder="Skill (e.g., React)" 
             className={inputClass}
-            value={skill}
-            onChange={(e) => setSkill(e.target.value)}
+            value={current.skill}
+            onChange={(e) => setCurrent({...current, skill: e.target.value})}
             onKeyDown={(e) => e.key === 'Enter' && addSkill()}
           />
           <button 

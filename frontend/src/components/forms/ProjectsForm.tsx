@@ -20,7 +20,7 @@ const ProjectsForm: React.FC<Props> = ({ id, data }) => {
   const { isDark } = useTheme();
   
   const [projects, setProjects] = useState<Project[]>([]);
-  const [formData, setFormData] = useState<Project>({
+  const [current, setCurrent] = useState<Project>({
     title: '', tech_stack: '', github: '', live_demo: '', description: ''
   });
 
@@ -30,14 +30,10 @@ const ProjectsForm: React.FC<Props> = ({ id, data }) => {
     }
   }, [data]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  };
-
   const addProject = () => {
-    if (formData.title.trim()) {
-      setProjects([...projects, formData]);
-      setFormData({ title: '', tech_stack: '', github: '', live_demo: '', description: '' });
+    if (current.title.trim()) {
+      setProjects([...projects, current]);
+      setCurrent({ title: '', tech_stack: '', github: '', live_demo: '', description: '' });
     }
   };
 
@@ -46,12 +42,12 @@ const ProjectsForm: React.FC<Props> = ({ id, data }) => {
   };
 
   const handleSave = async () => {
-    try{
-      await updateResumeProjects(id, formData);
+    try {
+      await updateResumeProjects(id, projects);
     } catch (error: any) {
       console.error('Error saving projects:', error.response?.data || error.message);
     }
-  }
+  };
 
   const inputClass = `w-full p-3 rounded-xl border outline-none transition-colors ${
     isDark ? 'bg-black border-zinc-800 text-white focus:border-green-500' : 'bg-zinc-50 border-zinc-200 text-zinc-900 focus:border-green-500'
@@ -61,30 +57,28 @@ const ProjectsForm: React.FC<Props> = ({ id, data }) => {
 
   return (
     <div className="space-y-6">
-      
       <div className="space-y-4">
         <div>
           <label className={labelClass}>Project Title</label>
-          <input name="title" className={inputClass} value={formData.title} onChange={handleChange} placeholder="e.g., E-commerce Platform" />
+          <input className={inputClass} value={current.title} onChange={(e) => setCurrent({...current, title: e.target.value})} placeholder="e.g., E-commerce Platform" />
         </div>
         <div>
           <label className={labelClass}>Tech Stack</label>
-          <input name="tech_stack" className={inputClass} value={formData.tech_stack} onChange={handleChange} placeholder="e.g., React, FastAPI, PostgreSQL" />
+          <input className={inputClass} value={current.tech_stack} onChange={(e) => setCurrent({...current, tech_stack: e.target.value})} placeholder="e.g., React, FastAPI, PostgreSQL" />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <input name="github" className={inputClass} value={formData.github} onChange={handleChange} placeholder="GitHub URL" />
-          <input name="live_demo" className={inputClass} value={formData.live_demo} onChange={handleChange} placeholder="Live Demo URL" />
+          <input className={inputClass} value={current.github} onChange={(e) => setCurrent({...current, github: e.target.value})} placeholder="GitHub URL" />
+          <input className={inputClass} value={current.live_demo} onChange={(e) => setCurrent({...current, live_demo: e.target.value})} placeholder="Live Demo URL" />
         </div>
         <div>
           <label className={labelClass}>Description</label>
-          <textarea name="description" className={`${inputClass} h-24`} value={formData.description} onChange={handleChange} placeholder="What did you build? How did you build it?" />
+          <textarea className={`${inputClass} h-24`} value={current.description} onChange={(e) => setCurrent({...current, description: e.target.value})} placeholder="What did you build? How did you build it?" />
         </div>
         <button onClick={addProject} className="flex items-center justify-center gap-2 w-full py-3 bg-zinc-900 text-white rounded-xl font-semibold hover:bg-black transition-colors">
           <Plus className="w-4 h-4" /> Add Project
         </button>
       </div>
 
-      {/* Dynamic List */}
       <div className="space-y-3 mt-4">
         {projects.map((item, index) => (
           <div key={index} className={`p-4 rounded-xl border flex justify-between items-start ${isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-zinc-50 border-zinc-200'}`}>

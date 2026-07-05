@@ -20,7 +20,7 @@ const CertificatesForm: React.FC<Props> = ({ id, data }) => {
   const { isDark } = useTheme();
   
   const [certs, setCerts] = useState<Certificate[]>([]);
-  const [formData, setFormData] = useState<Certificate>({ 
+  const [current, setCurrent] = useState<Certificate>({ 
     name: '', issuer: '', issue_date: '', credential_id: '', credential_url: '' 
   });
 
@@ -30,15 +30,10 @@ const CertificatesForm: React.FC<Props> = ({ id, data }) => {
     }
   }, [data]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
   const addCert = () => {
-    if (formData.name.trim() && formData.issuer.trim()) {
-      setCerts([...certs, formData]);
-      setFormData({ name: '', issuer: '', issue_date: '', credential_id: '', credential_url: '' });
+    if (current.name.trim() && current.issuer.trim()) {
+      setCerts([...certs, current]);
+      setCurrent({ name: '', issuer: '', issue_date: '', credential_id: '', credential_url: '' });
     }
   };
 
@@ -46,7 +41,7 @@ const CertificatesForm: React.FC<Props> = ({ id, data }) => {
 
   const handleSave = async () => {
     try {
-      await updateResumeCertificates(id, formData)
+      await updateResumeCertificates(id, certs);
     } catch (err: any) {
       console.error("Error saving Certificates", err.response?.detail);
     }
@@ -60,21 +55,18 @@ const CertificatesForm: React.FC<Props> = ({ id, data }) => {
 
   return (
     <div className="space-y-6">
-
-      {/* Input Fields */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <input name="name" placeholder="Name" className={inputClass} value={formData.name} onChange={handleChange} />
-        <input name="issuer" placeholder="Issuer" className={inputClass} value={formData.issuer} onChange={handleChange} />
-        <input name="issue_date" type="date" className={inputClass} value={formData.issue_date} onChange={handleChange} />
-        <input name="credential_id" placeholder="Credential ID" className={inputClass} value={formData.credential_id} onChange={handleChange} />
+        <input name="name" placeholder="Name" className={inputClass} value={current.name} onChange={(e) => setCurrent({...current, name: e.target.value})} />
+        <input name="issuer" placeholder="Issuer" className={inputClass} value={current.issuer} onChange={(e) => setCurrent({...current, issuer: e.target.value})} />
+        <input name="issue_date" type="date" className={inputClass} value={current.issue_date} onChange={(e) => setCurrent({...current, issue_date: e.target.value})} />
+        <input name="credential_id" placeholder="Credential ID" className={inputClass} value={current.credential_id} onChange={(e) => setCurrent({...current, credential_id: e.target.value})} />
       </div>
-      <input name="credential_url" placeholder="Credential URL" className={inputClass} value={formData.credential_url} onChange={handleChange} />
+      <input name="credential_url" placeholder="Credential URL" className={inputClass} value={current.credential_url} onChange={(e) => setCurrent({...current, credential_url: e.target.value})} />
       
       <button onClick={addCert} className="flex items-center gap-2 w-full justify-center py-3 bg-zinc-900 text-white rounded-xl font-semibold hover:bg-black transition-colors">
         <Plus className="w-4 h-4" /> Add Certificate
       </button>
 
-      {/* Dynamic List */}
       <div className="space-y-2 mt-4">
         {certs.map((c, i) => (
           <div key={i} className={`flex items-center justify-between p-4 rounded-xl border ${isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-zinc-50 border-zinc-200'}`}>
