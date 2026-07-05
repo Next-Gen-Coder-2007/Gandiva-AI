@@ -1,25 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { Plus, Trash2 } from 'lucide-react';
+import { updateResumeSkills } from '../../services/resume';
 
-const SkillsForm: React.FC = () => {
+interface SkillItem {
+  category: string;
+  skill: string;
+}
+
+interface Props {
+  id: number;
+  data: SkillItem[] | null;
+}
+
+const SkillsForm: React.FC<Props> = ({ id, data }) => {
   const { isDark } = useTheme();
   
-  // Local state to manage the list of skills being added
-  const [skillsList, setSkillsList] = useState<{ category: string; skill: string }[]>([]);
+  const [skillsList, setSkillsList] = useState<SkillItem[]>([]);
   const [category, setCategory] = useState('');
   const [skill, setSkill] = useState('');
 
-  const inputClass = `w-full p-3 rounded-xl border outline-none transition-colors ${
-    isDark 
-      ? 'bg-black border-zinc-800 text-white focus:border-green-500' 
-      : 'bg-zinc-50 border-zinc-200 text-zinc-900 focus:border-green-500'
-  }`;
+  useEffect(() => {
+    if (data && Array.isArray(data)) {
+      setSkillsList(data);
+    }
+  }, [data]);
 
   const addSkill = () => {
-    if (category && skill) {
-      setSkillsList([...skillsList, { category, skill }]);
-      setSkill(''); // Clear skill input after adding
+    if (category.trim() && skill.trim()) {
+      setSkillsList([...skillsList, { category: category.trim(), skill: skill.trim() }]);
+      setSkill('');
     }
   };
 
@@ -27,15 +37,23 @@ const SkillsForm: React.FC = () => {
     setSkillsList(skillsList.filter((_, i) => i !== index));
   };
 
-  const handleSave = () => {
-    console.log("Saving skills to database:", skillsList);
+  const handleSave = async () => {
+    try {
+      await updateResumeSkills(id, skillsList);
+    } catch (error: any) {
+      console.error('Error saving skills:', error.response?.data || error.message);
+    }
   };
+
+  const inputClass = `w-full p-3 rounded-xl border outline-none transition-colors ${
+    isDark 
+      ? 'bg-black border-zinc-800 text-white focus:border-green-500' 
+      : 'bg-zinc-50 border-zinc-200 text-zinc-900 focus:border-green-500'
+  }`;
 
   return (
     <div className="space-y-6">
-      <h3 className="text-xl font-bold">Skills</h3>
 
-      {/* Input Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <input 
           placeholder="Category (e.g., Frontend)" 
@@ -49,6 +67,7 @@ const SkillsForm: React.FC = () => {
             className={inputClass}
             value={skill}
             onChange={(e) => setSkill(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && addSkill()}
           />
           <button 
             onClick={addSkill}
@@ -59,30 +78,36 @@ const SkillsForm: React.FC = () => {
         </div>
       </div>
 
-      {/* List Display */}
       <div className="space-y-2">
         {skillsList.map((item, index) => (
           <div 
             key={index} 
-            className={`flex items-center justify-between p-3 rounded-xl border ${isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-zinc-50 border-zinc-200'}`}
+            className={`flex items-center justify-between p-3 rounded-xl border ${
+              isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-zinc-50 border-zinc-200'
+            }`}
           >
             <span className="font-medium">
               <span className="text-green-500 mr-2">[{item.category}]</span> 
               {item.skill}
             </span>
-            <button onClick={() => removeSkill(index)} className="text-red-500 hover:text-red-600">
+            <button 
+              onClick={() => removeSkill(index)} 
+              className="text-red-500 hover:text-red-600 p-1"
+            >
               <Trash2 className="w-4 h-4" />
             </button>
           </div>
         ))}
       </div>
 
-      <button 
-        onClick={handleSave}
-        className="w-full py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-colors"
-      >
-        Save Skills
-      </button>
+      {skillsList.length > 0 && (
+        <button 
+          onClick={handleSave}
+          className="w-full py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-colors"
+        >
+          Save Skills
+        </button>
+      )}
     </div>
   );
 };

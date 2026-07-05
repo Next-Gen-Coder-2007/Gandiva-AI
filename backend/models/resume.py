@@ -53,7 +53,7 @@ class Language(Base):
     resume = relationship("Resume", back_populates="languages")
 
 class Education(Base):
-    __tablename__ = "education"
+    __tablename__ = "educations"
 
     id = Column(Integer, primary_key=True)
     resume_id = Column(Integer, ForeignKey("resumes.id"))
@@ -68,7 +68,7 @@ class Education(Base):
     resume = relationship("Resume", back_populates="educations")
 
 class Experience(Base):
-    __tablename__ = "experience"
+    __tablename__ = "experiences"
 
     id = Column(Integer, primary_key=True)
     resume_id = Column(Integer, ForeignKey("resumes.id"))

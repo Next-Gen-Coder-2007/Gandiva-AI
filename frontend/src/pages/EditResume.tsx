@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
@@ -12,25 +12,43 @@ import ProjectForm from '../components/forms/ProjectsForm';
 import AchievementForm from '../components/forms/AchievementsForm';
 import CertificateForm from '../components/forms/CertificatesForm';
 
-const SECTIONS = [
-  { name: 'Personal Info', component: <PersonalInfoForm /> },
-  { name: 'Skills', component: <SkillsForm /> },
-  { name: 'Languages', component: <LanguageForm /> },
-  { name: 'Education', component: <EducationForm /> },
-  { name: 'Experience', component: <ExperienceForm /> },
-  { name: 'Projects', component: <ProjectForm /> },
-  { name: 'Achievements', component: <AchievementForm /> },
-  { name: 'Certificates', component: <CertificateForm /> },
-];
+import { getResumeById } from '../services/resume';
 
 const EditResume: React.FC = () => {
   const { isDark } = useTheme();
   const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState(0);
   const { id } = useParams<{ id: string }>();
+  const [resumeData, setResumeData] = useState<any>(null);
 
+  useEffect(() => {
+    const fetchResume = async () => {
+      if (id) {
+        try {
+          const response = await getResumeById(Number(id));
+          setResumeData(response.data);
+          console.log('Fetched Resume:', response.data);
+        } catch (error) {
+          console.error('Error fetching resume:', error);
+        }
+      }
+    };
+    fetchResume();
+  }, [id]);
+
+  const sections = useMemo(() => [
+    { name: 'Personal Info', component: <PersonalInfoForm id={Number(id)} data={resumeData} /> },
+    { name: 'Skills', component: <SkillsForm id={Number(id)} data={resumeData?.skills} /> },
+    { name: 'Languages', component: <LanguageForm id={Number(id)} data={resumeData?.languages} /> },
+    { name: 'Education', component: <EducationForm id={Number(id)} data={resumeData?.educations} /> },
+    { name: 'Experience', component: <ExperienceForm id={Number(id)} data={resumeData?.experiences} /> },
+    { name: 'Projects', component: <ProjectForm id={Number(id)} data={resumeData?.projects} /> },
+    { name: 'Achievements', component: <AchievementForm id={Number(id)} data={resumeData?.achievements} /> },
+    { name: 'Certificates', component: <CertificateForm id={Number(id)} data={resumeData?.certificates} /> },
+  ], [resumeData]);
+  
   const isFirstStep = activeStep === 0;
-  const isLastStep = activeStep === SECTIONS.length - 1;
+  const isLastStep = activeStep === sections.length - 1;
 
   return (
     <div className={`min-h-screen p-4 sm:p-8 ${isDark ? 'bg-black text-white' : 'bg-white text-zinc-900'}`}>
@@ -44,7 +62,7 @@ const EditResume: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl mx-auto">
         <div className={`p-8 rounded-3xl border h-fit ${isDark ? 'bg-zinc-950 border-zinc-800' : 'bg-white border-zinc-200'}`}>
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-2xl font-bold">{SECTIONS[activeStep].name}</h2>
+            <h2 className="text-2xl font-bold">{sections[activeStep].name}</h2>
             <div className="flex gap-2">
               <button 
                 disabled={isFirstStep}
@@ -67,7 +85,7 @@ const EditResume: React.FC = () => {
             </div>
           </div>
           
-          {SECTIONS[activeStep].component}
+          {sections[activeStep].component}
         </div>
 
         <div className={`sticky top-24 border-2 border-dashed rounded-3xl h-[600px] flex items-center justify-center ${

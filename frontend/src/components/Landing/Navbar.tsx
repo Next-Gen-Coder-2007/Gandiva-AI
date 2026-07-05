@@ -27,7 +27,6 @@ const Navbar = () => {
           <span className={`text-xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-zinc-900'}`}>Gandiva AI</span>
         </button>
 
-        {/* Desktop Navigation Links */}
         <div className={`hidden md:flex items-center gap-8 text-sm font-medium ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
           <button
             onClick={() => handleScrollTo(0)}
@@ -81,7 +80,6 @@ const Navbar = () => {
             Login
           </Link>
           
-          {/* Desktop Register Button (Hidden on Mobile) */}
           <Link 
             to="/register" 
             className="hidden md:flex bg-green-500 hover:bg-green-400 text-black px-5 py-2 rounded-full text-sm font-bold transition-all shadow-[0_0_15px_rgba(34,197,94,0.3)] hover:shadow-[0_0_25px_rgba(34,197,94,0.5)]"
@@ -89,7 +87,6 @@ const Navbar = () => {
             Register
           </Link>
 
-          {/* Mobile Menu Toggle Button */}
           <button
             onClick={toggleMobileMenu}
             className={`md:hidden flex h-10 w-10 items-center justify-center rounded-full border transition-colors ${isDark ? 'border-zinc-800 bg-zinc-900 text-zinc-200' : 'border-zinc-200 bg-white text-zinc-700'}`}
@@ -100,7 +97,6 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Mobile Menu Dropdown */}
       {isMobileMenuOpen && (
         <div className={`md:hidden absolute top-full left-0 w-full border-b backdrop-blur-xl transition-colors duration-300 ${isDark ? 'bg-black/95 border-white/5' : 'bg-white/95 border-zinc-200'}`}>
           <div className="flex flex-col px-6 py-6 gap-6 text-base font-medium">

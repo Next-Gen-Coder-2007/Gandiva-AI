@@ -1,8 +1,64 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
+import { updateResumePersonalInfo } from '../../services/resume';
 
-const PersonalInfoForm: React.FC = () => {
+interface PersonalInfo {
+  full_name: string;
+  email: string;
+  phone: string;
+  location: string;
+  profile_summary: string;
+  linkedin: string;
+  github: string;
+  portfolio: string;
+}
+
+interface Props {
+  id: number;
+  data: PersonalInfo | null;
+}
+
+const PersonalInfoForm: React.FC<Props> = ({ id, data }) => {
   const { isDark } = useTheme();
+
+  const [formData, setFormData] = useState<PersonalInfo>({
+    full_name: '',
+    email: '',
+    phone: '',
+    location: '',
+    profile_summary: '',
+    linkedin: '',
+    github: '',
+    portfolio: '',
+  });
+
+  useEffect(() => {
+    if (data) {
+      setFormData({
+        full_name: data.full_name || '',
+        email: data.email || '',
+        phone: data.phone || '',
+        location: data.location || '',
+        profile_summary: data.profile_summary || '',
+        linkedin: data.linkedin || '',
+        github: data.github || '',
+        portfolio: data.portfolio || '',
+      });
+    }
+  }, [data]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSave = async () => {
+    try {
+      await updateResumePersonalInfo(id, formData);
+    } catch (error: any) {
+      console.error('Error saving personal info:', error.response?.data || error.message);
+    }
+  };
 
   const inputClass = `w-full p-3 rounded-xl border outline-none transition-colors ${
     isDark 
@@ -12,65 +68,63 @@ const PersonalInfoForm: React.FC = () => {
 
   const labelClass = `block text-sm font-semibold mb-2 ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`;
 
-  const handleSave = () => {
-    console.log("Saving all personal info fields to Resume model...");
-  };
-
   return (
     <div className="space-y-6">
-      <h3 className="text-xl font-bold">Personal Information</h3>
-      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className={labelClass}>Full Name</label>
-          <input type="text" placeholder="Full Name" className={inputClass} />
-        </div>
-        <div>
-          <label className={labelClass}>Email</label>
-          <input type="email" placeholder="Email address" className={inputClass} />
-        </div>
-        <div>
-          <label className={labelClass}>Phone</label>
-          <input type="tel" placeholder="Phone number" className={inputClass} />
-        </div>
-        <div>
-          <label className={labelClass}>Location</label>
-          <input type="text" placeholder="City, Country" className={inputClass} />
-        </div>
+        {[
+          { label: 'Full Name', name: 'full_name', type: 'text', placeholder: 'Enter your Name' },
+          { label: 'Email', name: 'email', type: 'email', placeholder: 'Enter your Email' },
+          { label: 'Phone', name: 'phone', type: 'tel', placeholder: 'Enter your Phone Number' },
+          { label: 'Location', name: 'location', type: 'text', placeholder: 'Enter your Location' },
+        ].map((field) => (
+          <div key={field.name}>
+            <label className={labelClass}>{field.label}</label>
+            <input 
+              name={field.name}
+              type={field.type}
+              placeholder={field.placeholder}
+              value={formData[field.name as keyof PersonalInfo]}
+              onChange={handleChange}
+              className={inputClass}
+            />
+          </div>
+        ))}
       </div>
 
-      {/* Summary */}
       <div>
         <label className={labelClass}>Profile Summary</label>
         <textarea 
-          placeholder="A brief professional summary..." 
+          name="profile_summary"
+          placeholder="A brief professional summary about yourself..."
+          value={formData.profile_summary}
+          onChange={handleChange}
           className={`${inputClass} h-32 resize-none`} 
         />
       </div>
 
-      {/* Links */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className={labelClass}>LinkedIn URL</label>
-          <input type="url" placeholder="linkedin.com/in/..." className={inputClass} />
-        </div>
-        <div>
-          <label className={labelClass}>GitHub URL</label>
-          <input type="url" placeholder="github.com/..." className={inputClass} />
-        </div>
-        <div>
-          <label className={labelClass}>Portfolio URL</label>
-          <input type="url" placeholder="yourportfolio.com" className={inputClass} />
-        </div>
-        <div>
-          <label className={labelClass}>Personal Website</label>
-          <input type="url" placeholder="yourwebsite.com" className={inputClass} />
-        </div>
+        {[
+          { label: 'LinkedIn URL', name: 'linkedin', placeholder: 'linkedin.com/in/username' },
+          { label: 'GitHub URL', name: 'github', placeholder: 'github.com/username' },
+          { label: 'Portfolio URL', name: 'portfolio', placeholder: 'yourportfolio.com' },
+        ].map((field) => (
+          <div key={field.name}>
+            <label className={labelClass}>{field.label}</label>
+            <input 
+              name={field.name}
+              type="url"
+              placeholder={field.placeholder}
+              value={formData[field.name as keyof PersonalInfo]}
+              onChange={handleChange}
+              className={inputClass}
+            />
+          </div>
+        ))}
       </div>
 
       <button 
         onClick={handleSave}
-        className="w-full py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-colors"
+        className="w-full py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-all active:scale-95"
       >
         Save Personal Info
       </button>

@@ -1,19 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { Plus, Trash2 } from 'lucide-react';
+import { updateResumeAchievements } from '../../services/resume';
 
-const AchievementsForm: React.FC = () => {
+interface Achievement {
+  title: string;
+  description: string;
+}
+
+interface Props {
+  id: number;
+  data: Achievement[] | null;
+}
+
+const AchievementsForm: React.FC<Props> = ({ id, data }) => {
   const { isDark } = useTheme();
-  const [achievements, setAchievements] = useState<{ title: string; description: string }[]>([]);
-  const [formData, setFormData] = useState({ title: '', description: '' });
+  
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [formData, setFormData] = useState<Achievement>({ title: '', description: '' });
 
-  const inputClass = `w-full p-3 rounded-xl border outline-none transition-colors ${
-    isDark 
-      ? 'bg-black border-zinc-800 text-white focus:border-green-500' 
-      : 'bg-zinc-50 border-zinc-200 text-zinc-900 focus:border-green-500'
-  }`;
+  // Sync state with parent data
+  useEffect(() => {
+    if (data && Array.isArray(data)) {
+      setAchievements(data);
+    }
+  }, [data]);
 
-  const labelClass = `block text-sm font-semibold mb-2 ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`;
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
 
   const addAchievement = () => {
     if (formData.title.trim()) {
@@ -26,33 +42,46 @@ const AchievementsForm: React.FC = () => {
     setAchievements(achievements.filter((_, i) => i !== index));
   };
 
-  const handleSave = () => {
-    console.log("Saving dynamic achievements list:", achievements);
-  };
+  const handleSave = async () => {
+    try {
+      await updateResumeAchievements(id, formData);
+    } catch(err: any) {
+      console.log("Error updating Achievements", err.response?.detail);
+    }
+  }
+
+  const inputClass = `w-full p-3 rounded-xl border outline-none transition-colors ${
+    isDark 
+      ? 'bg-black border-zinc-800 text-white focus:border-green-500' 
+      : 'bg-zinc-50 border-zinc-200 text-zinc-900 focus:border-green-500'
+  }`;
+
+  const labelClass = `block text-sm font-semibold mb-2 ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`;
 
   return (
     <div className="space-y-6">
-      <h3 className="text-xl font-bold">Achievements</h3>
       
       {/* Input Section */}
       <div className="space-y-4">
         <div>
           <label className={labelClass}>Title</label>
           <input 
+            name="title"
             type="text" 
             placeholder="e.g., Winner of Hackathon 2026" 
             className={inputClass}
             value={formData.title}
-            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            onChange={handleChange}
           />
         </div>
         <div>
           <label className={labelClass}>Description</label>
           <textarea 
+            name="description"
             placeholder="Describe your achievement and the impact..." 
             className={`${inputClass} h-24 resize-none`}
             value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            onChange={handleChange}
           />
         </div>
         <button 

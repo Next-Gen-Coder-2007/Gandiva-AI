@@ -11,3 +11,39 @@ export const deleteResume = async (resumeId: number) => {
 export const getAllResumes = async () => {
   return await api.get("/resumes");
 }
+
+export const getResumeById = async (resumeId: number) => {
+  return await api.get(`/resumes/${resumeId}`);
+}
+
+export const updateResumePersonalInfo = async (resumeId: number, personalInfo: any) => {
+  return await api.put(`/resumes/${resumeId}/personal-info`, personalInfo);
+}
+
+export const updateResumeSkills = async (resumeId: number, skills: any) => {
+  return await api.put(`/resumes/${resumeId}/skills`, skills);
+}
+
+export const updateResumeProjects = async (resumeId: number, projects: any) => {
+  return await api.put(`/resumes/${resumeId}/projects`, projects);
+}
+
+export const updateResumeEducations = async (resumeId: number, educations: any) => {
+  return await api.put(`/resumes/${resumeId}/educations`, educations);
+}
+
+export const updateResumeExperiences = async (resumeId: number, experiences: any) => {
+  return await api.put(`/resumes/${resumeId}/experiences`, experiences);
+}
+
+export const updateResumeLanguages = async (resumeId: number, languages: any) => {
+  return await api.put(`/resumes/${resumeId}/languages`, languages);
+}
+
+export const updateResumeCertificates = async (resumeId: number, certificates: any) => {
+  return await api.put(`/resumes/${resumeId}/certificates`, certificates);
+}
+
+export const updateResumeAchievements = async (resumeId: number, achievements: any) => {
+  return await api.put(`/resumes/${resumeId}/achievements`, achievements);
+}

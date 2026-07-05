@@ -1,24 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { Plus, Trash2 } from 'lucide-react';
+import { updateResumeLanguages } from '../../services/resume';
 
-const LanguagesForm: React.FC = () => {
+interface Language {
+  language: string;
+  proficiency: string;
+}
+
+interface Props {
+  id: number;
+  data: Language[] | null;
+}
+
+const LanguagesForm: React.FC<Props> = ({ id, data }) => {
   const { isDark } = useTheme();
   
-  // Local state for the list and current input
-  const [languagesList, setLanguagesList] = useState<{ language: string; proficiency: string }[]>([]);
-  const [current, setCurrent] = useState({ language: '', proficiency: '' });
+  const [languagesList, setLanguagesList] = useState<Language[]>([]);
+  const [formData, setFormData] = useState<Language>({ language: '', proficiency: '' });
 
-  const inputClass = `w-full p-3 rounded-xl border outline-none transition-colors ${
-    isDark 
-      ? 'bg-black border-zinc-800 text-white focus:border-green-500' 
-      : 'bg-zinc-50 border-zinc-200 text-zinc-900 focus:border-green-500'
-  }`;
+  useEffect(() => {
+    if (data && Array.isArray(data)) {
+      setLanguagesList(data);
+    }
+  }, [data]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
 
   const addLanguage = () => {
-    if (current.language && current.proficiency) {
-      setLanguagesList([...languagesList, current]);
-      setCurrent({ language: '', proficiency: '' });
+    if (formData.language.trim() && formData.proficiency.trim()) {
+      setLanguagesList([...languagesList, formData]);
+      setFormData({ language: '', proficiency: '' });
     }
   };
 
@@ -26,28 +41,39 @@ const LanguagesForm: React.FC = () => {
     setLanguagesList(languagesList.filter((_, i) => i !== index));
   };
 
-  const handleSave = () => {
-    console.log("Saving all languages to database:", languagesList);
+  const handleSave = async () => {
+    try {
+      await updateResumeLanguages(id, formData);
+    } catch (error: any) {
+      console.error('Error saving languages:', error.response?.data || error.message);
+    }
   };
+
+  const inputClass = `w-full p-3 rounded-xl border outline-none transition-colors ${
+    isDark 
+      ? 'bg-black border-zinc-800 text-white focus:border-green-500' 
+      : 'bg-zinc-50 border-zinc-200 text-zinc-900 focus:border-green-500'
+  }`;
 
   return (
     <div className="space-y-6">
-      <h3 className="text-xl font-bold">Languages</h3>
 
       {/* Input Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <input 
+          name="language"
           placeholder="Language (e.g., English)" 
           className={inputClass}
-          value={current.language}
-          onChange={(e) => setCurrent({...current, language: e.target.value})}
+          value={formData.language}
+          onChange={handleChange}
         />
         <div className="flex gap-2">
           <input 
+            name="proficiency"
             placeholder="Proficiency (e.g., Native)" 
             className={inputClass}
-            value={current.proficiency}
-            onChange={(e) => setCurrent({...current, proficiency: e.target.value})}
+            value={formData.proficiency}
+            onChange={handleChange}
           />
           <button 
             onClick={addLanguage}
@@ -63,12 +89,17 @@ const LanguagesForm: React.FC = () => {
         {languagesList.map((item, index) => (
           <div 
             key={index} 
-            className={`flex items-center justify-between p-3 rounded-xl border ${isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-zinc-50 border-zinc-200'}`}
+            className={`flex items-center justify-between p-3 rounded-xl border ${
+              isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-zinc-50 border-zinc-200'
+            }`}
           >
             <span className="font-medium">
               {item.language} <span className="text-zinc-500 text-sm ml-2">({item.proficiency})</span>
             </span>
-            <button onClick={() => removeLanguage(index)} className="text-red-500 hover:text-red-600">
+            <button 
+              onClick={() => removeLanguage(index)} 
+              className="text-red-500 hover:text-red-600 p-1"
+            >
               <Trash2 className="w-4 h-4" />
             </button>
           </div>

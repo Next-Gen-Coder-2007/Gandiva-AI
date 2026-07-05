@@ -1,27 +1,51 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { Plus, Trash2 } from 'lucide-react';
+import { updateResumeExperiences } from '../../services/resume';
 
-const ExperiencesForm: React.FC = () => {
+interface Experience {
+  company: string;
+  role: string;
+  location: string;
+  start_date: string;
+  end_date: string;
+  currently_working: boolean;
+  description: string;
+}
+
+interface Props {
+  id: number;
+  data: Experience[] | null;
+}
+
+const ExperiencesForm: React.FC<Props> = ({ id, data }) => {
   const { isDark } = useTheme();
   
-  // State for the list of experience entries
-  const [experiences, setExperiences] = useState<any[]>([]);
-  // State for the active form fields
-  const [formData, setFormData] = useState({
+  const [experiences, setExperiences] = useState<Experience[]>([]);
+  const [formData, setFormData] = useState<Experience>({
     company: '', role: '', location: '', start_date: '', end_date: '', currently_working: false, description: ''
   });
 
-  const inputClass = `w-full p-3 rounded-xl border outline-none transition-colors ${
-    isDark 
-      ? 'bg-black border-zinc-800 text-white focus:border-green-500' 
-      : 'bg-zinc-50 border-zinc-200 text-zinc-900 focus:border-green-500'
-  }`;
+  // Sync state with incoming parent data
+  useEffect(() => {
+    if (data && Array.isArray(data)) {
+      setExperiences(data);
+    }
+  }, [data]);
 
-  const labelClass = `block text-sm font-semibold mb-2 ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`;
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value, type } = e.target;
+    
+    if (type === 'checkbox') {
+      const target = e.target as HTMLInputElement;
+      setFormData(prev => ({ ...prev, [name]: target.checked }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
+  };
 
   const addExperience = () => {
-    if (formData.company && formData.role) {
+    if (formData.company.trim() && formData.role.trim()) {
       setExperiences([...experiences, formData]);
       setFormData({ company: '', role: '', location: '', start_date: '', end_date: '', currently_working: false, description: '' });
     }
@@ -31,42 +55,56 @@ const ExperiencesForm: React.FC = () => {
     setExperiences(experiences.filter((_, i) => i !== index));
   };
 
+  const handleSave = async () => {
+    try  {
+      await updateResumeExperiences(id, formData);
+    } catch (error: any) {
+      console.error('Error saving experiences:', error.response?.data || error.message);
+    }
+  }
+
+  const inputClass = `w-full p-3 rounded-xl border outline-none transition-colors ${
+    isDark ? 'bg-black border-zinc-800 text-white focus:border-green-500' : 'bg-zinc-50 border-zinc-200 text-zinc-900 focus:border-green-500'
+  }`;
+
+  const labelClass = `block text-sm font-semibold mb-2 ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`;
+
   return (
     <div className="space-y-6">
-      <h3 className="text-xl font-bold">Experience Details</h3>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className={labelClass}>Company</label>
-          <input className={inputClass} value={formData.company} onChange={(e) => setFormData({...formData, company: e.target.value})} placeholder="Company Name" />
+          <input name="company" className={inputClass} value={formData.company} onChange={handleChange} placeholder="Company Name" />
         </div>
         <div>
           <label className={labelClass}>Role</label>
-          <input className={inputClass} value={formData.role} onChange={(e) => setFormData({...formData, role: e.target.value})} placeholder="Job Title" />
+          <input name="role" className={inputClass} value={formData.role} onChange={handleChange} placeholder="Job Title" />
         </div>
       </div>
 
       <div>
         <label className={labelClass}>Location</label>
-        <input className={inputClass} value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} placeholder="City, Country" />
+        <input name="location" className={inputClass} value={formData.location} onChange={handleChange} placeholder="City, Country" />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className={labelClass}>Start Date</label>
-          <input type="date" className={inputClass} value={formData.start_date} onChange={(e) => setFormData({...formData, start_date: e.target.value})} />
+          <input name="start_date" type="date" className={inputClass} value={formData.start_date} onChange={handleChange} />
         </div>
         <div>
           <label className={labelClass}>End Date</label>
-          <input type="date" className={inputClass} value={formData.end_date} onChange={(e) => setFormData({...formData, end_date: e.target.value})} disabled={formData.currently_working} />
+          <input name="end_date" type="date" className={inputClass} value={formData.end_date} onChange={handleChange} disabled={formData.currently_working} />
         </div>
       </div>
 
       <div className="flex items-center gap-2">
         <input 
+          name="currently_working"
           type="checkbox" 
           checked={formData.currently_working}
-          onChange={(e) => setFormData({...formData, currently_working: e.target.checked})}
+          onChange={handleChange}
           className="w-4 h-4 accent-green-600"
         />
         <label className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>I am currently working here</label>
@@ -74,7 +112,7 @@ const ExperiencesForm: React.FC = () => {
 
       <div>
         <label className={labelClass}>Description</label>
-        <textarea className={`${inputClass} h-24`} value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} placeholder="Key responsibilities..." />
+        <textarea name="description" className={`${inputClass} h-24`} value={formData.description} onChange={handleChange} placeholder="Key responsibilities..." />
       </div>
 
       <button onClick={addExperience} className="flex items-center justify-center gap-2 w-full py-3 bg-zinc-900 text-white rounded-xl font-semibold hover:bg-black transition-colors">
@@ -95,7 +133,7 @@ const ExperiencesForm: React.FC = () => {
       </div>
 
       {experiences.length > 0 && (
-        <button className="w-full py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-colors">
+        <button onClick={handleSave} className="w-full py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-colors">
           Save All Experience
         </button>
       )}

@@ -1,27 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { Plus, Trash2 } from 'lucide-react';
+import { updateResumeEducations } from '../../services/resume';
 
-const EducationsForm: React.FC = () => {
+interface Education {
+  institution: string;
+  degree: string;
+  field_of_study: string;
+  start_date: string;
+  end_date: string;
+  grade: string;
+  description: string;
+}
+
+interface Props {
+  id: number;
+  data: Education[] | null;
+}
+
+const EducationsForm: React.FC<Props> = ({ id, data }) => {
   const { isDark } = useTheme();
   
-  // State for the list of education entries
-  const [educations, setEducations] = useState<any[]>([]);
-  // State for the currently editing entry
-  const [formData, setFormData] = useState({
+  const [educations, setEducations] = useState<Education[]>([]);
+  const [formData, setFormData] = useState<Education>({
     institution: '', degree: '', field_of_study: '', start_date: '', end_date: '', grade: '', description: ''
   });
 
-  const inputClass = `w-full p-3 rounded-xl border outline-none transition-colors ${
-    isDark 
-      ? 'bg-black border-zinc-800 text-white focus:border-green-500' 
-      : 'bg-zinc-50 border-zinc-200 text-zinc-900 focus:border-green-500'
-  }`;
+  useEffect(() => {
+    if (data && Array.isArray(data)) {
+      setEducations(data);
+    }
+  }, [data]);
 
-  const labelClass = `block text-sm font-semibold mb-2 ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`;
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
 
   const addEducation = () => {
-    if (formData.institution && formData.degree) {
+    if (formData.institution.trim() && formData.degree.trim()) {
       setEducations([...educations, formData]);
       setFormData({ institution: '', degree: '', field_of_study: '', start_date: '', end_date: '', grade: '', description: '' });
     }
@@ -31,41 +48,55 @@ const EducationsForm: React.FC = () => {
     setEducations(educations.filter((_, i) => i !== index));
   };
 
+  const handleSave = async () => {
+    try {
+      await updateResumeEducations(id, formData);
+    } catch (error: any) {
+      console.error('Error saving educations:', error.response?.data || error.message);
+    }
+  }
+
+  const inputClass = `w-full p-3 rounded-xl border outline-none transition-colors ${
+    isDark 
+      ? 'bg-black border-zinc-800 text-white focus:border-green-500' 
+      : 'bg-zinc-50 border-zinc-200 text-zinc-900 focus:border-green-500'
+  }`;
+
+  const labelClass = `block text-sm font-semibold mb-2 ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`;
+
   return (
     <div className="space-y-6">
-      <h3 className="text-xl font-bold">Education Details</h3>
       
-      {/* Input Fields */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className={labelClass}>Institution</label>
-          <input className={inputClass} value={formData.institution} onChange={(e) => setFormData({...formData, institution: e.target.value})} placeholder="University Name" />
+          <input name="institution" className={inputClass} value={formData.institution} onChange={handleChange} placeholder="University Name" />
         </div>
         <div>
           <label className={labelClass}>Degree</label>
-          <input className={inputClass} value={formData.degree} onChange={(e) => setFormData({...formData, degree: e.target.value})} placeholder="e.g., B.Sc" />
+          <input name="degree" className={inputClass} value={formData.degree} onChange={handleChange} placeholder="e.g., B.Sc" />
         </div>
         <div>
           <label className={labelClass}>Field of Study</label>
-          <input className={inputClass} value={formData.field_of_study} onChange={(e) => setFormData({...formData, field_of_study: e.target.value})} placeholder="e.g., CS" />
+          <input name="field_of_study" className={inputClass} value={formData.field_of_study} onChange={handleChange} placeholder="e.g., Computer Science" />
         </div>
         <div>
           <label className={labelClass}>Grade / GPA</label>
-          <input className={inputClass} value={formData.grade} onChange={(e) => setFormData({...formData, grade: e.target.value})} placeholder="e.g., 3.8/4.0" />
+          <input name="grade" className={inputClass} value={formData.grade} onChange={handleChange} placeholder="e.g., 3.8/4.0" />
         </div>
         <div>
           <label className={labelClass}>Start Date</label>
-          <input type="date" className={inputClass} value={formData.start_date} onChange={(e) => setFormData({...formData, start_date: e.target.value})} />
+          <input name="start_date" type="date" className={inputClass} value={formData.start_date} onChange={handleChange} />
         </div>
         <div>
           <label className={labelClass}>End Date</label>
-          <input type="date" className={inputClass} value={formData.end_date} onChange={(e) => setFormData({...formData, end_date: e.target.value})} />
+          <input name="end_date" type="date" className={inputClass} value={formData.end_date} onChange={handleChange} />
         </div>
       </div>
 
       <div>
         <label className={labelClass}>Description</label>
-        <textarea className={`${inputClass} h-24`} value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} placeholder="Relevant coursework..." />
+        <textarea name="description" className={`${inputClass} h-24`} value={formData.description} onChange={handleChange} placeholder="Relevant coursework..." />
       </div>
 
       <button onClick={addEducation} className="flex items-center justify-center gap-2 w-full py-3 bg-zinc-900 text-white rounded-xl font-semibold hover:bg-black transition-colors">
@@ -86,7 +117,7 @@ const EducationsForm: React.FC = () => {
       </div>
 
       {educations.length > 0 && (
-        <button className="w-full py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-colors">
+        <button onClick={handleSave} className="w-full py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-colors">
           Save All Education
         </button>
       )}
