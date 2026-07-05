@@ -101,7 +101,14 @@ const ExperiencesForm: React.FC<Props> = ({ id, data, onUpdate }) => {
         <textarea className={`${inputClass} h-24`} value={current.description} onChange={(e) => setCurrent({...current, description: e.target.value})} placeholder="Key responsibilities..." />
       </div>
 
-      <button onClick={addExperience} className="flex items-center justify-center gap-2 w-full py-3 bg-zinc-900 text-white rounded-xl font-semibold hover:bg-black transition-colors">
+      <button 
+        onClick={addExperience} 
+        className={`flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold transition-colors ${
+          isDark
+            ? 'bg-white text-black hover:bg-zinc-200'
+            : 'bg-black text-white hover:bg-zinc-600'
+        }`}
+      >
         <Plus className="w-4 h-4" /> Add Experience
       </button>
 

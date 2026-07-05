@@ -64,7 +64,14 @@ const CertificatesForm: React.FC<Props> = ({ id, data, onUpdate }) => {
       </div>
       <input name="credential_url" placeholder="Credential URL" className={inputClass} value={current.credential_url} onChange={(e) => setCurrent({...current, credential_url: e.target.value})} />
       
-      <button onClick={addCert} className="flex items-center gap-2 w-full justify-center py-3 bg-zinc-900 text-white rounded-xl font-semibold hover:bg-black transition-colors">
+      <button 
+        onClick={addCert}           
+        className={`flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold transition-colors ${
+            isDark
+              ? 'bg-white text-black hover:bg-zinc-200'
+              : 'bg-black text-white hover:bg-zinc-600'
+          }`}
+      >
         <Plus className="w-4 h-4" /> Add Certificate
       </button>
 

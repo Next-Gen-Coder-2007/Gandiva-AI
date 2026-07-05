@@ -70,9 +70,13 @@ const AchievementsForm: React.FC<Props> = ({ id, data, onUpdate }) => {
             onChange={(e) => setCurrent({...current, description: e.target.value})}
           />
         </div>
-        <button 
+        <button
           onClick={addAchievement}
-          className="flex items-center justify-center gap-2 w-full py-3 bg-zinc-900 text-white rounded-xl font-semibold hover:bg-black transition-colors"
+          className={`flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold transition-colors ${
+            isDark
+              ? 'bg-white text-black hover:bg-zinc-200'
+              : 'bg-black text-white hover:bg-zinc-600'
+          }`}
         >
           <Plus className="w-4 h-4" /> Add Achievement
         </button>
