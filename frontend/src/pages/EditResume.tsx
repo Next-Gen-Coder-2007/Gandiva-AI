@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
@@ -27,7 +27,6 @@ const EditResume: React.FC = () => {
         try {
           const response = await getResumeById(Number(id));
           setResumeData(response.data);
-          console.log('Fetched Resume:', response.data);
         } catch (error) {
           console.error('Error fetching resume:', error);
         }
@@ -36,16 +35,38 @@ const EditResume: React.FC = () => {
     fetchResume();
   }, [id]);
 
-  const sections = useMemo(() => [
-    { name: 'Personal Info', component: <PersonalInfoForm id={Number(id)} data={resumeData} /> },
-    { name: 'Skills', component: <SkillsForm id={Number(id)} data={resumeData?.skills} /> },
-    { name: 'Languages', component: <LanguageForm id={Number(id)} data={resumeData?.languages} /> },
-    { name: 'Education', component: <EducationForm id={Number(id)} data={resumeData?.educations} /> },
-    { name: 'Experience', component: <ExperienceForm id={Number(id)} data={resumeData?.experiences} /> },
-    { name: 'Projects', component: <ProjectForm id={Number(id)} data={resumeData?.projects} /> },
-    { name: 'Achievements', component: <AchievementForm id={Number(id)} data={resumeData?.achievements} /> },
-    { name: 'Certificates', component: <CertificateForm id={Number(id)} data={resumeData?.certificates} /> },
-  ], [resumeData]);
+  const handleUpdate = (section: string, updatedData: any) => {
+    setResumeData((prev: any) => ({
+      ...prev,
+      [section]: updatedData,
+    }));
+  };
+
+  const sections = [
+    { 
+      name: 'Personal Info', 
+      component: (
+        <PersonalInfoForm 
+          key={`personal-info-${id}`}
+          id={Number(id)} 
+          data={resumeData}
+          onUpdate={(updatedPersonalInfo) => {
+            setResumeData((prev: any) => ({
+              ...prev,
+              ...updatedPersonalInfo
+            }));
+          }} 
+        />
+      ) 
+    },
+    { name: 'Skills', component: <SkillsForm id={Number(id)} data={resumeData?.skills || []} onUpdate={(d) => handleUpdate('skills', d)} /> },
+    { name: 'Languages', component: <LanguageForm id={Number(id)} data={resumeData?.languages || []} onUpdate={(d) => handleUpdate('languages', d)} /> },
+    { name: 'Education', component: <EducationForm id={Number(id)} data={resumeData?.educations || []} onUpdate={(d) => handleUpdate('educations', d)} /> },
+    { name: 'Experience', component: <ExperienceForm id={Number(id)} data={resumeData?.experiences || []} onUpdate={(d) => handleUpdate('experiences', d)} /> },
+    { name: 'Projects', component: <ProjectForm id={Number(id)} data={resumeData?.projects || []} onUpdate={(d) => handleUpdate('projects', d)} /> },
+    { name: 'Achievements', component: <AchievementForm id={Number(id)} data={resumeData?.achievements || []} onUpdate={(d) => handleUpdate('achievements', d)} /> },
+    { name: 'Certificates', component: <CertificateForm id={Number(id)} data={resumeData?.certificates || []} onUpdate={(d) => handleUpdate('certificates', d)} /> },
+  ]
   
   const isFirstStep = activeStep === 0;
   const isLastStep = activeStep === sections.length - 1;

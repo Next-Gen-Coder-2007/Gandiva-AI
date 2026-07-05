@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { Plus, Trash2 } from 'lucide-react';
 import { updateResumeLanguages } from '../../services/resume';
@@ -11,29 +11,27 @@ interface Language {
 interface Props {
   id: number;
   data: Language[] | null;
+  onUpdate: (data: any) => void;
 }
 
-const LanguagesForm: React.FC<Props> = ({ id, data }) => {
+const LanguagesForm: React.FC<Props> = ({ id, data, onUpdate }) => {
   const { isDark } = useTheme();
   
-  const [languagesList, setLanguagesList] = useState<Language[]>([]);
+  const [languagesList, setLanguagesList] = useState<Language[]>(data || []);
   const [current, setCurrent] = useState<Language>({ language: '', proficiency: '' });
 
-  useEffect(() => {
-    if (data && Array.isArray(data)) {
-      setLanguagesList(data);
-    }
-  }, [data]);
 
   const addLanguage = () => {
     if (current.language.trim() && current.proficiency.trim()) {
       setLanguagesList([...languagesList, current]);
+      onUpdate(languagesList);
       setCurrent({ language: '', proficiency: '' });
     }
   };
 
   const removeLanguage = (index: number) => {
     setLanguagesList(languagesList.filter((_, i) => i !== index));
+    onUpdate(languagesList);
   };
 
   const handleSave = async () => {

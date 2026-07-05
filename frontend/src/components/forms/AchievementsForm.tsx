@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { Plus, Trash2 } from 'lucide-react';
 import { updateResumeAchievements } from '../../services/resume';
@@ -11,31 +11,28 @@ interface Achievement {
 interface Props {
   id: number;
   data: Achievement[] | null;
+  onUpdate: (data: any) => void;
 }
 
-const AchievementsForm: React.FC<Props> = ({ id, data }) => {
+const AchievementsForm: React.FC<Props> = ({ id, data, onUpdate }) => {
   const { isDark } = useTheme();
   
-  // Single state source of truth
-  const [achievements, setAchievements] = useState<Achievement[]>([]);
-  // Local state for the current "drafting" achievement
+  const [achievements, setAchievements] = useState<Achievement[]>(data || []);
   const [current, setCurrent] = useState<Achievement>({ title: '', description: '' });
-
-  useEffect(() => {
-    if (data && Array.isArray(data)) {
-      setAchievements(data);
-    }
-  }, [data]);
 
   const addAchievement = () => {
     if (current.title.trim()) {
-      setAchievements([...achievements, current]);
-      setCurrent({ title: '', description: '' }); // Clear inputs after adding
+      const updatedList = [...achievements, current];      
+      setAchievements(updatedList);      
+      onUpdate(updatedList);      
+      setCurrent({ title: '', description: '' });
     }
   };
 
   const removeAchievement = (index: number) => {
-    setAchievements(achievements.filter((_, i) => i !== index));
+    const updatedList = achievements.filter((_, i) => i !== index);
+    setAchievements(updatedList);    
+    onUpdate(updatedList);
   };
 
   const handleSave = async () => {

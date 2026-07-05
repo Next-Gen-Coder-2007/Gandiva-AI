@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { updateResumePersonalInfo } from '../../services/resume';
 
@@ -16,23 +16,32 @@ interface PersonalInfo {
 interface Props {
   id: number;
   data: PersonalInfo | null;
+  onUpdate: (data: any) => void;
 }
 
-const PersonalInfoForm: React.FC<Props> = ({ id, data }) => {
+const placeholders: Record<string, string> = {
+  full_name: 'Enter your Name',
+  email: 'Enter your Mail',
+  phone: 'Enter your Mobile Number',
+  location: 'City, Country',
+  linkedin: 'linkedin.com/in/username',
+  github: 'github.com/username',
+  portfolio: 'yourportfolio.com',
+};
+
+const PersonalInfoForm: React.FC<Props> = ({ id, data, onUpdate }) => {
   const { isDark } = useTheme();
 
-  const [formData, setFormData] = useState<PersonalInfo>({
+  const [formData, setFormData] = useState<PersonalInfo>(data || {
     full_name: '', email: '', phone: '', location: '',
     profile_summary: '', linkedin: '', github: '', portfolio: '',
   });
 
-  useEffect(() => {
-    if (data) setFormData(data);
-  }, [data]);
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const updatedData = { ...formData, [name]: value };
+    setFormData(updatedData);
+    onUpdate(updatedData);
   };
 
   const handleSave = async () => {
@@ -41,6 +50,11 @@ const PersonalInfoForm: React.FC<Props> = ({ id, data }) => {
     } catch (error: any) {
       console.error('Error saving personal info:', error.response?.data || error.message);
     }
+  };
+
+  const formatLabel = (str: string) => {
+    const label = str.replace('_', ' ');
+    return label.charAt(0).toUpperCase() + label.slice(1).toLowerCase();
   };
 
   const inputClass = `w-full p-3 rounded-xl border outline-none transition-colors ${
@@ -54,9 +68,10 @@ const PersonalInfoForm: React.FC<Props> = ({ id, data }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {['full_name', 'email', 'phone', 'location'].map((key) => (
           <div key={key}>
-            <label className={labelClass}>{key.replace('_', ' ').toUpperCase()}</label>
+            <label className={labelClass}>{formatLabel(key)}</label>
             <input 
               name={key}
+              placeholder={placeholders[key]}
               value={formData[key as keyof PersonalInfo]}
               onChange={handleChange}
               className={inputClass}
@@ -66,9 +81,10 @@ const PersonalInfoForm: React.FC<Props> = ({ id, data }) => {
       </div>
 
       <div>
-        <label className={labelClass}>Profile Summary</label>
+        <label className={labelClass}>Profile summary</label>
         <textarea 
           name="profile_summary"
+          placeholder="Briefly describe your professional background..."
           value={formData.profile_summary}
           onChange={handleChange}
           className={`${inputClass} h-32 resize-none`} 
@@ -78,9 +94,10 @@ const PersonalInfoForm: React.FC<Props> = ({ id, data }) => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {['linkedin', 'github', 'portfolio'].map((key) => (
           <div key={key}>
-            <label className={labelClass}>{key.charAt(0).toUpperCase() + key.slice(1)}</label>
+            <label className={labelClass}>{formatLabel(key)}</label>
             <input 
               name={key}
+              placeholder={placeholders[key]}
               value={formData[key as keyof PersonalInfo]}
               onChange={handleChange}
               className={inputClass}

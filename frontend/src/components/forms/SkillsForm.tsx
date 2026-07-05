@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { Plus, Trash2 } from 'lucide-react';
 import { updateResumeSkills } from '../../services/resume';
@@ -11,29 +11,29 @@ interface SkillItem {
 interface Props {
   id: number;
   data: SkillItem[] | null;
+  onUpdate: (data: any) => void;
 }
 
-const SkillsForm: React.FC<Props> = ({ id, data }) => {
+const SkillsForm: React.FC<Props> = ({ id, data, onUpdate }) => {
   const { isDark } = useTheme();
   
-  const [skillsList, setSkillsList] = useState<SkillItem[]>([]);
+  const [skillsList, setSkillsList] = useState<SkillItem[]>(data || []);
   const [current, setCurrent] = useState<SkillItem>({ category: '', skill: '' });
 
-  useEffect(() => {
-    if (data && Array.isArray(data)) {
-      setSkillsList(data);
-    }
-  }, [data]);
 
   const addSkill = () => {
     if (current.category.trim() && current.skill.trim()) {
-      setSkillsList([...skillsList, current]);
+      const updatedList = [...skillsList, current];
+      setSkillsList(updatedList);
+      onUpdate(updatedList);
       setCurrent({ ...current, skill: '' });
     }
   };
 
   const removeSkill = (index: number) => {
-    setSkillsList(skillsList.filter((_, i) => i !== index));
+    const updatedList = skillsList.filter((_, i) => i !== index);
+    setSkillsList(updatedList);
+    onUpdate(updatedList);
   };
 
   const handleSave = async () => {

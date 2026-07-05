@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { Plus, Trash2 } from 'lucide-react';
 import { updateResumeProjects } from '../../services/resume';
@@ -14,31 +14,31 @@ interface Project {
 interface Props {
   id: number;
   data: Project[] | null;
+  onUpdate: (data: any) => void;
 }
 
-const ProjectsForm: React.FC<Props> = ({ id, data }) => {
+const ProjectsForm: React.FC<Props> = ({ id, data, onUpdate }) => {
   const { isDark } = useTheme();
   
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<Project[]>(data || []);
   const [current, setCurrent] = useState<Project>({
     title: '', tech_stack: '', github: '', live_demo: '', description: ''
   });
 
-  useEffect(() => {
-    if (data && Array.isArray(data)) {
-      setProjects(data);
-    }
-  }, [data]);
 
   const addProject = () => {
     if (current.title.trim()) {
-      setProjects([...projects, current]);
+      const updatedList = [...projects, current];
+      setProjects(updatedList);
+      onUpdate(updatedList);
       setCurrent({ title: '', tech_stack: '', github: '', live_demo: '', description: '' });
     }
   };
 
   const removeProject = (index: number) => {
-    setProjects(projects.filter((_, i) => i !== index));
+    const updatedList = projects.filter((_, i) => i !== index)
+    setProjects(updatedList);
+    onUpdate(updatedList);
   };
 
   const handleSave = async () => {

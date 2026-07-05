@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { Plus, Trash2 } from 'lucide-react';
 import { updateResumeEducations } from '../../services/resume';
@@ -16,31 +16,30 @@ interface Education {
 interface Props {
   id: number;
   data: Education[] | null;
+  onUpdate: (data: any) => void;
 }
 
-const EducationsForm: React.FC<Props> = ({ id, data }) => {
+const EducationsForm: React.FC<Props> = ({ id, data, onUpdate }) => {
   const { isDark } = useTheme();
   
-  const [educations, setEducations] = useState<Education[]>([]);
+  const [educations, setEducations] = useState<Education[]>(data || []);
   const [current, setCurrent] = useState<Education>({
     institution: '', degree: '', field_of_study: '', start_date: '', end_date: '', grade: '', description: ''
   });
 
-  useEffect(() => {
-    if (data && Array.isArray(data)) {
-      setEducations(data);
-    }
-  }, [data]);
-
   const addEducation = () => {
     if (current.institution.trim() && current.degree.trim()) {
-      setEducations([...educations, current]);
+      const updatedList = [...educations, current];
+      setEducations(updatedList);
+      onUpdate(updatedList);
       setCurrent({ institution: '', degree: '', field_of_study: '', start_date: '', end_date: '', grade: '', description: '' });
     }
   };
 
   const removeEducation = (index: number) => {
-    setEducations(educations.filter((_, i) => i !== index));
+    const updatedList = educations.filter((_, i) => i !== index);
+    setEducations(updatedList);
+    onUpdate(updatedList);
   };
 
   const handleSave = async () => {

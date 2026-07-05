@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { Plus, Trash2 } from 'lucide-react';
 import { updateResumeExperiences } from '../../services/resume';
@@ -16,31 +16,31 @@ interface Experience {
 interface Props {
   id: number;
   data: Experience[] | null;
+  onUpdate: (data: any) => void;
 }
 
-const ExperiencesForm: React.FC<Props> = ({ id, data }) => {
+const ExperiencesForm: React.FC<Props> = ({ id, data, onUpdate }) => {
   const { isDark } = useTheme();
   
-  const [experiences, setExperiences] = useState<Experience[]>([]);
+  const [experiences, setExperiences] = useState<Experience[]>(data || []);
   const [current, setCurrent] = useState<Experience>({
     company: '', role: '', location: '', start_date: '', end_date: '', currently_working: false, description: ''
   });
 
-  useEffect(() => {
-    if (data && Array.isArray(data)) {
-      setExperiences(data);
-    }
-  }, [data]);
 
   const addExperience = () => {
     if (current.company.trim() && current.role.trim()) {
-      setExperiences([...experiences, current]);
+      const updatedList = [...experiences, current];
+      setExperiences(updatedList);
+      onUpdate(updatedList);
       setCurrent({ company: '', role: '', location: '', start_date: '', end_date: '', currently_working: false, description: '' });
     }
   };
 
   const removeExperience = (index: number) => {
-    setExperiences(experiences.filter((_, i) => i !== index));
+    const updatedList = experiences.filter((_, i) => i !== index)
+    setExperiences(updatedList);
+    onUpdate(updatedList);
   };
 
   const handleSave = async () => {

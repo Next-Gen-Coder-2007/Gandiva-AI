@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { Plus, Trash2 } from 'lucide-react';
 import { updateResumeCertificates } from '../../services/resume';
@@ -14,30 +14,31 @@ interface Certificate {
 interface Props {
   id: number;
   data: Certificate[] | null;
+  onUpdate: (data: any) => void;
 }
 
-const CertificatesForm: React.FC<Props> = ({ id, data }) => {
+const CertificatesForm: React.FC<Props> = ({ id, data, onUpdate }) => {
   const { isDark } = useTheme();
   
-  const [certs, setCerts] = useState<Certificate[]>([]);
+  const [certs, setCerts] = useState<Certificate[]>(data || []);
   const [current, setCurrent] = useState<Certificate>({ 
     name: '', issuer: '', issue_date: '', credential_id: '', credential_url: '' 
   });
 
-  useEffect(() => {
-    if (data && Array.isArray(data)) {
-      setCerts(data);
-    }
-  }, [data]);
-
   const addCert = () => {
     if (current.name.trim() && current.issuer.trim()) {
-      setCerts([...certs, current]);
+      const updatedList = [...certs, current]
+      setCerts(updatedList);
+      onUpdate(updatedList);
       setCurrent({ name: '', issuer: '', issue_date: '', credential_id: '', credential_url: '' });
     }
   };
 
-  const removeCert = (index: number) => setCerts(certs.filter((_, i) => i !== index));
+  const removeCert = (index: number) => {
+    const updatedList = certs.filter((_, i) => i !== index);
+    setCerts(updatedList);
+    onUpdate(updatedList);
+  }
 
   const handleSave = async () => {
     try {
