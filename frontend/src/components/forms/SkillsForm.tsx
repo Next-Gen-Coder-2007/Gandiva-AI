@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../context/ThemeContext';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Loader2 } from 'lucide-react'; // Added Loader2
 import { updateResumeSkills } from '../../services/resume';
 
 interface SkillItem {
@@ -20,6 +20,8 @@ const SkillsForm: React.FC<Props> = ({ id, data, onUpdate }) => {
   const [skillsList, setSkillsList] = useState<SkillItem[]>(data || []);
   const [current, setCurrent] = useState<SkillItem>({ category: '', skill: '' });
 
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   const addSkill = () => {
     if (current.category.trim() && current.skill.trim()) {
@@ -27,6 +29,7 @@ const SkillsForm: React.FC<Props> = ({ id, data, onUpdate }) => {
       setSkillsList(updatedList);
       onUpdate(updatedList);
       setCurrent({ ...current, skill: '' });
+      setSaveStatus('idle');
     }
   };
 
@@ -34,13 +37,25 @@ const SkillsForm: React.FC<Props> = ({ id, data, onUpdate }) => {
     const updatedList = skillsList.filter((_, i) => i !== index);
     setSkillsList(updatedList);
     onUpdate(updatedList);
+    setSaveStatus('idle');
   };
 
   const handleSave = async () => {
+    setIsSaving(true);
+    setSaveStatus('idle');
+
     try {
       await updateResumeSkills(id, skillsList);
+      setSaveStatus('success');
+      setTimeout(() => {
+        setSaveStatus('idle');
+      }, 3000);
+      
     } catch (error: any) {
       console.error('Error saving skills:', error.response?.data || error.message);
+      setSaveStatus('error');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -57,14 +72,20 @@ const SkillsForm: React.FC<Props> = ({ id, data, onUpdate }) => {
           placeholder="Category (e.g., Frontend)" 
           className={inputClass}
           value={current.category}
-          onChange={(e) => setCurrent({...current, category: e.target.value})}
+          onChange={(e) => {
+            setCurrent({...current, category: e.target.value});
+            if (saveStatus !== 'idle') setSaveStatus('idle'); // Clear status on typing
+          }}
         />
         <div className="flex gap-2">
           <input 
             placeholder="Skill (e.g., React)" 
             className={inputClass}
             value={current.skill}
-            onChange={(e) => setCurrent({...current, skill: e.target.value})}
+            onChange={(e) => {
+              setCurrent({...current, skill: e.target.value});
+              if (saveStatus !== 'idle') setSaveStatus('idle'); // Clear status on typing
+            }}
             onKeyDown={(e) => e.key === 'Enter' && addSkill()}
           />
           <button 
@@ -99,12 +120,31 @@ const SkillsForm: React.FC<Props> = ({ id, data, onUpdate }) => {
       </div>
 
       {skillsList.length > 0 && (
-        <button 
-          onClick={handleSave}
-          className="w-full py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-colors"
-        >
-          Save Skills
-        </button>
+        <div className="space-y-3 mt-6">
+          <button 
+            onClick={handleSave}
+            disabled={isSaving}
+            className={`flex items-center justify-center gap-2 w-full py-4 rounded-xl font-bold transition-all ${
+              isSaving 
+                ? 'bg-green-600/70 cursor-not-allowed text-white' 
+                : 'bg-green-600 hover:bg-green-700 text-white active:scale-95'
+            }`}
+          >
+            {isSaving && <Loader2 className="w-5 h-5 animate-spin" />}
+            {isSaving ? 'Saving Skills...' : 'Save Skills'}
+          </button>
+
+          {saveStatus === 'success' && (
+            <p className="text-green-500 text-sm text-center font-medium animate-pulse">
+              Skills saved successfully!
+            </p>
+          )}
+          {saveStatus === 'error' && (
+            <p className="text-red-500 text-sm text-center font-medium">
+              Failed to save skills. Please try again.
+            </p>
+          )}
+        </div>
       )}
     </div>
   );

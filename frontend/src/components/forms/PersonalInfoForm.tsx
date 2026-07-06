@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../context/ThemeContext';
+import { Loader2 } from 'lucide-react'; // Imported Loader2 for the spinner
 import { updateResumePersonalInfo } from '../../services/resume';
 
 interface PersonalInfo {
@@ -37,18 +38,37 @@ const PersonalInfoForm: React.FC<Props> = ({ id, data, onUpdate }) => {
     profile_summary: '', linkedin: '', github: '', portfolio: '',
   });
 
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     const updatedData = { ...formData, [name]: value };
     setFormData(updatedData);
     onUpdate(updatedData);
+    
+    if (saveStatus !== 'idle') {
+      setSaveStatus('idle');
+    }
   };
 
   const handleSave = async () => {
+    setIsSaving(true);
+    setSaveStatus('idle');
+    
     try {
       await updateResumePersonalInfo(id, formData);
+      setSaveStatus('success');
+      
+      setTimeout(() => {
+        setSaveStatus('idle');
+      }, 3000);
+      
     } catch (error: any) {
       console.error('Error saving personal info:', error.response?.data || error.message);
+      setSaveStatus('error');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -106,12 +126,31 @@ const PersonalInfoForm: React.FC<Props> = ({ id, data, onUpdate }) => {
         ))}
       </div>
 
-      <button 
-        onClick={handleSave}
-        className="w-full py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-all active:scale-95"
-      >
-        Save Personal Info
-      </button>
+      <div className="space-y-3 mt-6">
+        <button 
+          onClick={handleSave}
+          disabled={isSaving}
+          className={`flex items-center justify-center gap-2 w-full py-4 rounded-xl font-bold transition-all ${
+            isSaving 
+              ? 'bg-green-600/70 cursor-not-allowed text-white' 
+              : 'bg-green-600 hover:bg-green-700 text-white active:scale-95'
+          }`}
+        >
+          {isSaving && <Loader2 className="w-5 h-5 animate-spin" />}
+          {isSaving ? 'Saving Info...' : 'Save Personal Info'}
+        </button>
+
+        {saveStatus === 'success' && (
+          <p className="text-green-500 text-sm text-center font-medium animate-pulse">
+            Personal info saved successfully!
+          </p>
+        )}
+        {saveStatus === 'error' && (
+          <p className="text-red-500 text-sm text-center font-medium">
+            Failed to save info. Please try again.
+          </p>
+        )}
+      </div>
     </div>
   );
 };

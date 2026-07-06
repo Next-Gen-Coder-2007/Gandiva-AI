@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../context/ThemeContext';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Loader2 } from 'lucide-react'; // Added Loader2 for a loading spinner
 import { updateResumeProjects } from '../../services/resume';
 
 interface Project {
@@ -25,6 +25,8 @@ const ProjectsForm: React.FC<Props> = ({ id, data, onUpdate }) => {
     title: '', tech_stack: '', github: '', live_demo: '', description: ''
   });
 
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   const addProject = () => {
     if (current.title.trim()) {
@@ -32,20 +34,34 @@ const ProjectsForm: React.FC<Props> = ({ id, data, onUpdate }) => {
       setProjects(updatedList);
       onUpdate(updatedList);
       setCurrent({ title: '', tech_stack: '', github: '', live_demo: '', description: '' });
+      setSaveStatus('idle');
     }
   };
 
   const removeProject = (index: number) => {
-    const updatedList = projects.filter((_, i) => i !== index)
+    const updatedList = projects.filter((_, i) => i !== index);
     setProjects(updatedList);
     onUpdate(updatedList);
+    setSaveStatus('idle');
   };
 
   const handleSave = async () => {
+    setIsSaving(true);
+    setSaveStatus('idle');
+    
     try {
       await updateResumeProjects(id, projects);
+      setSaveStatus('success');
+      
+      setTimeout(() => {
+        setSaveStatus('idle');
+      }, 3000);
+      
     } catch (error: any) {
       console.error('Error saving projects:', error.response?.data || error.message);
+      setSaveStatus('error');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -99,12 +115,31 @@ const ProjectsForm: React.FC<Props> = ({ id, data, onUpdate }) => {
       </div>
 
       {projects.length > 0 && (
-        <button 
-          onClick={handleSave}
-          className="w-full py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-colors"
-        >
-          Save All Projects
-        </button>
+        <div className="space-y-3 mt-6">
+          <button 
+            onClick={handleSave}
+            disabled={isSaving}
+            className={`flex items-center justify-center gap-2 w-full py-4 rounded-xl font-bold transition-colors ${
+              isSaving 
+                ? 'bg-green-600/70 cursor-not-allowed text-white'
+                : 'bg-green-600 hover:bg-green-700 text-white'
+            }`}
+          >
+            {isSaving && <Loader2 className="w-5 h-5 animate-spin" />}
+            {isSaving ? 'Saving Projects...' : 'Save All Projects'}
+          </button>
+
+          {saveStatus === 'success' && (
+            <p className="text-green-500 text-sm text-center font-medium animate-pulse">
+              Projects saved successfully!
+            </p>
+          )}
+          {saveStatus === 'error' && (
+            <p className="text-red-500 text-sm text-center font-medium">
+              Failed to save projects. Please try again.
+            </p>
+          )}
+        </div>
       )}
     </div>
   );

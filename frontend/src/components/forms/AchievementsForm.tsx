@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../context/ThemeContext';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Loader2 } from 'lucide-react'; // Added Loader2
 import { updateResumeAchievements } from '../../services/resume';
 
 interface Achievement {
@@ -20,12 +20,21 @@ const AchievementsForm: React.FC<Props> = ({ id, data, onUpdate }) => {
   const [achievements, setAchievements] = useState<Achievement[]>(data || []);
   const [current, setCurrent] = useState<Achievement>({ title: '', description: '' });
 
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
+  const handleInputChange = (field: keyof Achievement, value: string) => {
+    setCurrent({ ...current, [field]: value });
+    if (saveStatus !== 'idle') setSaveStatus('idle');
+  };
+
   const addAchievement = () => {
     if (current.title.trim()) {
       const updatedList = [...achievements, current];      
       setAchievements(updatedList);      
       onUpdate(updatedList);      
       setCurrent({ title: '', description: '' });
+      setSaveStatus('idle');
     }
   };
 
@@ -33,13 +42,26 @@ const AchievementsForm: React.FC<Props> = ({ id, data, onUpdate }) => {
     const updatedList = achievements.filter((_, i) => i !== index);
     setAchievements(updatedList);    
     onUpdate(updatedList);
+    setSaveStatus('idle');
   };
 
   const handleSave = async () => {
+    setIsSaving(true);
+    setSaveStatus('idle');
+
     try {
       await updateResumeAchievements(id, achievements);
+      setSaveStatus('success');
+      
+      setTimeout(() => {
+        setSaveStatus('idle');
+      }, 3000);
+      
     } catch(err: any) {
-      console.log("Error updating Achievements", err.response?.detail);
+      console.error("Error updating Achievements:", err.response?.detail || err.message);
+      setSaveStatus('error');
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -58,7 +80,7 @@ const AchievementsForm: React.FC<Props> = ({ id, data, onUpdate }) => {
             placeholder="e.g., Winner of Hackathon 2026" 
             className={inputClass}
             value={current.title}
-            onChange={(e) => setCurrent({...current, title: e.target.value})}
+            onChange={(e) => handleInputChange('title', e.target.value)}
           />
         </div>
         <div>
@@ -67,7 +89,7 @@ const AchievementsForm: React.FC<Props> = ({ id, data, onUpdate }) => {
             placeholder="Describe your achievement..." 
             className={`${inputClass} h-24 resize-none`}
             value={current.description}
-            onChange={(e) => setCurrent({...current, description: e.target.value})}
+            onChange={(e) => handleInputChange('description', e.target.value)}
           />
         </div>
         <button
@@ -97,12 +119,31 @@ const AchievementsForm: React.FC<Props> = ({ id, data, onUpdate }) => {
       </div>
 
       {achievements.length > 0 && (
-        <button 
-          onClick={handleSave}
-          className="w-full py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-colors"
-        >
-          Save All Achievements
-        </button>
+        <div className="space-y-3 mt-6">
+          <button 
+            onClick={handleSave}
+            disabled={isSaving}
+            className={`flex items-center justify-center gap-2 w-full py-4 rounded-xl font-bold transition-all ${
+              isSaving 
+                ? 'bg-green-600/70 cursor-not-allowed text-white' 
+                : 'bg-green-600 hover:bg-green-700 text-white active:scale-95'
+            }`}
+          >
+            {isSaving && <Loader2 className="w-5 h-5 animate-spin" />}
+            {isSaving ? 'Saving Achievements...' : 'Save All Achievements'}
+          </button>
+
+          {saveStatus === 'success' && (
+            <p className="text-green-500 text-sm text-center font-medium animate-pulse">
+              Achievements saved successfully!
+            </p>
+          )}
+          {saveStatus === 'error' && (
+            <p className="text-red-500 text-sm text-center font-medium">
+              Failed to save achievements. Please try again.
+            </p>
+          )}
+        </div>
       )}
     </div>
   );

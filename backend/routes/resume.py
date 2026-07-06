@@ -54,6 +54,8 @@ async def upload_and_parse_resume(title: str = Form(...), file: UploadFile = Fil
     db_resume = ResumeModel(
         user_id=current_user.id,
         title=title,
+        theme='professinoal',
+        color='green',
         profile_summary=parsed_data.get("profile_summary"),
         full_name=parsed_data.get("full_name"),
         email=parsed_data.get("email"),

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 
 interface ThemeProps {
   data: any;
@@ -37,6 +37,20 @@ const MinimalTheme: React.FC<ThemeProps> = ({ data, colorTheme }) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
   };
+
+  // Group skills by category
+  const groupedSkills = useMemo(() => {
+    if (!data.skills || !Array.isArray(data.skills)) return {};
+    return data.skills.reduce((acc: Record<string, any[]>, currentSkill: any) => {
+      // Default to 'Other' if no category is provided
+      const category = currentSkill.category || 'Other';
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(currentSkill);
+      return acc;
+    }, {});
+  }, [data.skills]);
 
   return (
     <div className="w-full h-full bg-white text-zinc-900 overflow-y-auto shadow-sm p-10 font-sans max-w-4xl mx-auto">
@@ -169,21 +183,29 @@ const MinimalTheme: React.FC<ThemeProps> = ({ data, colorTheme }) => {
           </h2>
           <div className="md:col-span-9 grid grid-cols-1 sm:grid-cols-2 gap-8">
             
+            {/* Skills - UPDATED TO HANDLE CATEGORIES */}
             {data.skills && data.skills.length > 0 && (
               <div>
-                <h3 className="text-sm font-medium text-zinc-900 mb-2">Skills</h3>
-                <p className="text-sm text-zinc-700 leading-relaxed">
-                  {data.skills.map((s: any) => s.skill).join(' • ')}
-                </p>
+                <h3 className="text-sm font-medium text-zinc-900 mb-3">Skills</h3>
+                <div className="flex flex-col gap-3">
+                  {Object.entries(groupedSkills).map(([category, skills]: [string, any], catIndex: number) => (
+                    <div key={catIndex}>
+                      <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider block mb-1">{category}</span>
+                      <p className="text-sm text-zinc-700 leading-relaxed">
+                        {skills.map((s: any) => s.skill).join(' • ')}
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
             {data.languages && data.languages.length > 0 && (
               <div>
-                <h3 className="text-sm font-medium text-zinc-900 mb-2">Languages</h3>
-                <div className="flex flex-col gap-1">
+                <h3 className="text-sm font-medium text-zinc-900 mb-3">Languages</h3>
+                <div className="flex flex-col gap-2">
                   {data.languages.map((lang: any, index: number) => (
-                    <div key={index} className="text-sm text-zinc-700 flex justify-between">
+                    <div key={index} className="text-sm text-zinc-700 flex justify-between border-b border-zinc-100 pb-1 last:border-0 last:pb-0">
                       <span>{lang.language}</span>
                       {lang.proficiency && <span className="text-zinc-400">{lang.proficiency}</span>}
                     </div>

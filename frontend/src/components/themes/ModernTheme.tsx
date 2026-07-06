@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 
 interface ThemeProps {
   data: any;
@@ -50,6 +50,20 @@ const ModernTheme: React.FC<ThemeProps> = ({ data, colorTheme }) => {
     return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
   };
 
+  // Group skills by category
+  const groupedSkills = useMemo(() => {
+    if (!data.skills || !Array.isArray(data.skills)) return {};
+    return data.skills.reduce((acc: Record<string, any[]>, currentSkill: any) => {
+      // Default to 'Other' if no category is provided
+      const category = currentSkill.category || 'Other';
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(currentSkill);
+      return acc;
+    }, {});
+  }, [data.skills]);
+
   return (
     <div className="w-full h-full bg-white text-zinc-900 overflow-y-auto shadow-sm text-sm font-sans flex flex-row">
       
@@ -69,15 +83,24 @@ const ModernTheme: React.FC<ThemeProps> = ({ data, colorTheme }) => {
           </div>
         </section>
 
-        {/* Skills */}
+        {/* Skills - UPDATED TO HANDLE CATEGORIES */}
         {data.skills && data.skills.length > 0 && (
           <section>
             <h2 className={`text-sm font-bold uppercase tracking-wider mb-3 ${primaryColor}`}>Skills</h2>
-            <div className="flex flex-wrap gap-2">
-              {data.skills.map((skill: any, index: number) => (
-                <span key={index} className={`text-xs px-2.5 py-1 rounded-md font-medium ${pillClass}`}>
-                  {skill.skill}
-                </span>
+            <div className="flex flex-col gap-4">
+              {Object.entries(groupedSkills).map(([category, skills]: [string, any], catIndex: number) => (
+                <div key={catIndex}>
+                  <h3 className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1.5">
+                    {category}
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {skills.map((skillItem: any, skillIndex: number) => (
+                      <span key={skillIndex} className={`text-xs px-2.5 py-1 rounded-md font-medium ${pillClass}`}>
+                        {skillItem.skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           </section>
@@ -162,7 +185,6 @@ const ModernTheme: React.FC<ThemeProps> = ({ data, colorTheme }) => {
           </section>
         )}
 
-        {/* Projects */}
         {data.projects && data.projects.length > 0 && (
           <section>
             <h2 className={`text-sm font-bold uppercase tracking-wider mb-3 ${primaryColor}`}>Projects</h2>
@@ -190,7 +212,6 @@ const ModernTheme: React.FC<ThemeProps> = ({ data, colorTheme }) => {
           </section>
         )}
 
-        {/* Education */}
         {data.educations && data.educations.length > 0 && (
           <section>
             <h2 className={`text-sm font-bold uppercase tracking-wider mb-3 ${primaryColor}`}>Education</h2>
@@ -213,7 +234,6 @@ const ModernTheme: React.FC<ThemeProps> = ({ data, colorTheme }) => {
           </section>
         )}
 
-        {/* Achievements */}
         {data.achievements && data.achievements.length > 0 && (
           <section>
             <h2 className={`text-sm font-bold uppercase tracking-wider mb-2 ${primaryColor}`}>Achievements</h2>

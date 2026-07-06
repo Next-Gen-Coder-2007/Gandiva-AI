@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 
 interface ThemeProps {
   data: any;
@@ -6,7 +6,6 @@ interface ThemeProps {
 }
 
 const ProfessionalTheme: React.FC<ThemeProps> = ({ data, colorTheme }) => {
-  // Helper to map the color string to actual Tailwind text colors
   const getColorClass = (color: string) => {
     const colors: Record<string, string> = {
       green: 'text-green-700',
@@ -38,10 +37,21 @@ const ProfessionalTheme: React.FC<ThemeProps> = ({ data, colorTheme }) => {
     return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
   };
 
+  const groupedSkills = useMemo(() => {
+    if (!data.skills || !Array.isArray(data.skills)) return {};
+    return data.skills.reduce((acc: Record<string, any[]>, currentSkill: any) => {
+      const category = currentSkill.category || 'Other';
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(currentSkill);
+      return acc;
+    }, {});
+  }, [data.skills]);
+
   return (
     <div className="w-full h-full bg-white text-zinc-900 overflow-y-auto shadow-sm p-8 text-sm font-serif">
       
-      {/* 1. HEADER */}
       <header className={`text-center mb-6 border-b-2 ${primaryBorder} pb-4`}>
         <h1 className={`text-3xl font-bold uppercase tracking-wider mb-2 ${primaryColor}`}>
           {data.full_name || 'Your Name'}
@@ -60,7 +70,6 @@ const ProfessionalTheme: React.FC<ThemeProps> = ({ data, colorTheme }) => {
         </div>
       </header>
 
-      {/* 2. PROFILE SUMMARY */}
       {data.profile_summary && (
         <section className="mb-5">
           <h2 className={`text-lg font-bold uppercase tracking-widest border-b mb-2 ${primaryBorder} ${primaryColor}`}>Summary</h2>
@@ -68,7 +77,6 @@ const ProfessionalTheme: React.FC<ThemeProps> = ({ data, colorTheme }) => {
         </section>
       )}
 
-      {/* 3. EXPERIENCE */}
       {data.experiences && data.experiences.length > 0 && (
         <section className="mb-5">
           <h2 className={`text-lg font-bold uppercase tracking-widest border-b mb-2 ${primaryBorder} ${primaryColor}`}>Experience</h2>
@@ -94,7 +102,6 @@ const ProfessionalTheme: React.FC<ThemeProps> = ({ data, colorTheme }) => {
         </section>
       )}
 
-      {/* 4. EDUCATION */}
       {data.educations && data.educations.length > 0 && (
         <section className="mb-5">
           <h2 className={`text-lg font-bold uppercase tracking-widest border-b mb-2 ${primaryBorder} ${primaryColor}`}>Education</h2>
@@ -117,7 +124,6 @@ const ProfessionalTheme: React.FC<ThemeProps> = ({ data, colorTheme }) => {
         </section>
       )}
 
-      {/* 5. PROJECTS */}
       {data.projects && data.projects.length > 0 && (
         <section className="mb-5">
           <h2 className={`text-lg font-bold uppercase tracking-widest border-b mb-2 ${primaryBorder} ${primaryColor}`}>Projects</h2>
@@ -141,16 +147,19 @@ const ProfessionalTheme: React.FC<ThemeProps> = ({ data, colorTheme }) => {
         </section>
       )}
 
-      {/* 6. SKILLS, LANGUAGES, ACHIEVEMENTS, CERTS */}
       <div className="grid grid-cols-2 gap-4">
+        
         {data.skills && data.skills.length > 0 && (
           <section className="mb-5">
             <h2 className={`text-lg font-bold uppercase tracking-widest border-b mb-2 ${primaryBorder} ${primaryColor}`}>Skills</h2>
-            <div className="flex flex-wrap gap-1 font-sans">
-              {data.skills.map((skill: any, index: number) => (
-                <span key={index} className="text-xs text-zinc-800 font-medium">
-                  {skill.skill}{index < data.skills.length - 1 ? ', ' : ''}
-                </span>
+            <div className="flex flex-col gap-2 font-sans">
+              {Object.entries(groupedSkills).map(([category, skills]: [string, any], catIndex: number) => (
+                <div key={catIndex}>
+                  <span className="text-xs font-bold text-zinc-900 mr-1.5">{category}:</span>
+                  <span className="text-xs text-zinc-800 font-medium">
+                    {skills.map((s: any) => s.skill).join(', ')}
+                  </span>
+                </div>
               ))}
             </div>
           </section>

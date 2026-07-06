@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 
 interface ThemeProps {
   data: any;
@@ -52,15 +52,27 @@ const CreativeTheme: React.FC<ThemeProps> = ({ data, colorTheme }) => {
     return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
   };
 
+  // --- NEW: Group skills by category ---
+  const groupedSkills = useMemo(() => {
+    if (!data.skills || !Array.isArray(data.skills)) return {};
+    return data.skills.reduce((acc: Record<string, any[]>, currentSkill: any) => {
+      // Default to 'Other' if no category is provided
+      const category = currentSkill.category || 'Other';
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(currentSkill);
+      return acc;
+    }, {});
+  }, [data.skills]);
+
   return (
     <div className="w-full h-full bg-white text-zinc-900 overflow-y-auto shadow-sm font-sans flex flex-col">
-      
       {/* FULL-WIDTH HEADER */}
       <header className={`w-full px-8 py-10 ${headerBg} text-white flex flex-col justify-center items-center text-center`}>
         <h1 className="text-4xl sm:text-5xl font-black tracking-tight mb-4 drop-shadow-sm uppercase">
           {data.full_name || 'Your Name'}
         </h1>
-        
         <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-white/90 text-sm font-medium">
           {data.email && <span>{data.email}</span>}
           {data.email && data.phone && <span className="opacity-50">•</span>}
@@ -68,7 +80,6 @@ const CreativeTheme: React.FC<ThemeProps> = ({ data, colorTheme }) => {
           {(data.email || data.phone) && data.location && <span className="opacity-50">•</span>}
           {data.location && <span>{data.location}</span>}
         </div>
-        
         <div className="flex flex-wrap justify-center gap-6 mt-4 text-white/80 text-sm">
           {data.linkedin && <a href={data.linkedin} className="hover:text-white transition-colors underline underline-offset-4 decoration-white/40 hover:decoration-white">LinkedIn</a>}
           {data.github && <a href={data.github} className="hover:text-white transition-colors underline underline-offset-4 decoration-white/40 hover:decoration-white">GitHub</a>}
@@ -78,10 +89,8 @@ const CreativeTheme: React.FC<ThemeProps> = ({ data, colorTheme }) => {
 
       {/* TWO-COLUMN GRID */}
       <div className="flex-1 grid grid-cols-12 gap-8 p-8">
-        
         {/* LEFT COLUMN (Narrow) */}
         <div className="col-span-12 sm:col-span-4 flex flex-col gap-8">
-          
           {/* Education */}
           {data.educations && data.educations.length > 0 && (
             <section>
@@ -104,17 +113,28 @@ const CreativeTheme: React.FC<ThemeProps> = ({ data, colorTheme }) => {
             </section>
           )}
 
-          {/* Skills */}
+          {/* Skills - UPDATED TO HANDLE CATEGORIES */}
           {data.skills && data.skills.length > 0 && (
             <section>
               <h2 className={`text-xl font-black uppercase tracking-widest mb-4 border-b-4 pb-1 inline-block ${accentColor}`}>
                 Skills
               </h2>
-              <div className="flex flex-wrap gap-2">
-                {data.skills.map((skill: any, index: number) => (
-                  <span key={index} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${pillStyle}`}>
-                    {skill.skill}
-                  </span>
+              <div className="flex flex-col gap-5">
+                {Object.entries(groupedSkills).map(([category, skills]: [string, any], catIndex: number) => (
+                  <div key={catIndex} className="flex flex-col gap-2">
+                    {/* Category Title */}
+                    <h3 className="text-xs font-bold text-zinc-800 uppercase tracking-wider">
+                      {category}
+                    </h3>
+                    {/* Skill Pills */}
+                    <div className="flex flex-wrap gap-2">
+                      {skills.map((skillItem: any, skillIndex: number) => (
+                        <span key={skillIndex} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${pillStyle}`}>
+                          {skillItem.skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             </section>
@@ -158,7 +178,6 @@ const CreativeTheme: React.FC<ThemeProps> = ({ data, colorTheme }) => {
 
         {/* RIGHT COLUMN (Wide) */}
         <div className="col-span-12 sm:col-span-8 flex flex-col gap-8">
-          
           {/* Summary */}
           {data.profile_summary && (
             <section>
