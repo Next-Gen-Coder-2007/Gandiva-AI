@@ -53,19 +53,20 @@ const EditResume: React.FC = () => {
   };
 
   const handleThemeChange = async (type: 'layoutTheme' | 'colorTheme', value: string) => {
-    // 1. Optimistically update local state for instant UI feedback
+    const currentLayout = type === 'layoutTheme' ? value : (resumeData?.theme || 'professional');
+    const currentColor = type === 'colorTheme' ? value : (resumeData?.color || 'green');
+
     setResumeData((prev: any) => ({
       ...prev,
-      [type]: value,
+      theme: currentLayout,
+      color: currentColor,
     }));
 
-    // 2. Determine the payload
-    const currentLayout = type === 'layoutTheme' ? value : resumeData?.layoutTheme;
-    const currentColor = type === 'colorTheme' ? value : resumeData?.colorTheme;
-
-    // 3. Fire the API call
     try {
-      await updateResumeTheme(Number(id), currentLayout, currentColor);
+      await updateResumeTheme(Number(id), { 
+        theme: currentLayout, 
+        color: currentColor 
+      });
     } catch (error) {
       console.error(`Failed to update ${type}:`, error);
     }
@@ -125,7 +126,7 @@ const EditResume: React.FC = () => {
       <div className="flex items-center gap-3">
         <LayoutTemplate className="w-4 h-4 text-zinc-400" />
         <select
-          value={resumeData?.layoutTheme || 'professional'}
+          value={resumeData?.theme || 'professional'}
           onChange={(e) => handleThemeChange('layoutTheme', e.target.value)}
           className={`text-sm font-medium rounded-lg px-3 py-1.5 border outline-none cursor-pointer transition-colors ${
             isDark
@@ -149,7 +150,7 @@ const EditResume: React.FC = () => {
               onClick={() => handleThemeChange('colorTheme', color.name)}
               title={color.name}
               className={`w-6 h-6 rounded-full transition-all duration-200 hover:scale-110 shadow-sm ${
-                resumeData?.colorTheme === color.name
+                resumeData?.color === color.name
                   ? 'ring-2 ring-offset-2 ring-green-600 scale-110'
                   : 'hover:ring-2 hover:ring-offset-2 hover:ring-zinc-400'
               } ${isDark ? 'ring-offset-[#121212]' : 'ring-offset-white'}`}
@@ -246,8 +247,8 @@ const EditResume: React.FC = () => {
               <div className="max-w-[800px] mx-auto shadow-xl rounded-sm overflow-hidden bg-white ring-1 ring-black/5">
                 <ResumePreview 
                   data={resumeData} 
-                  layoutTheme={resumeData?.layoutTheme || 'professional'} 
-                  colorTheme={resumeData?.colorTheme || 'green'}
+                  layoutTheme={resumeData?.theme || 'professional'} 
+                  colorTheme={resumeData?.color || 'green'}
                 />
               </div>
             </div>
@@ -287,8 +288,8 @@ const EditResume: React.FC = () => {
             <div className="w-full shadow-2xl rounded-sm overflow-hidden bg-white mx-auto ring-1 ring-black/5" style={{ maxWidth: '800px' }}>
               <ResumePreview 
                 data={resumeData}
-                layoutTheme={resumeData?.layoutTheme || 'professional'} 
-                colorTheme={resumeData?.colorTheme || 'green'}
+                layoutTheme={resumeData?.theme || 'professional'} 
+                colorTheme={resumeData?.color || 'green'}
               />
             </div>
           </div>

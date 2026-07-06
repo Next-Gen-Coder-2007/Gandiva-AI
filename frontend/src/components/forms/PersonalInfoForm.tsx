@@ -37,8 +37,6 @@ const PersonalInfoForm: React.FC<Props> = ({ id, data, onUpdate }) => {
     profile_summary: '', linkedin: '', github: '', portfolio: '',
   });
 
-  console.log(formData)
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     const updatedData = { ...formData, [name]: value };
@@ -74,7 +72,7 @@ const PersonalInfoForm: React.FC<Props> = ({ id, data, onUpdate }) => {
             <input 
               name={key}
               placeholder={placeholders[key]}
-              value={formData[key as keyof PersonalInfo]}
+              value={formData[key as keyof PersonalInfo] || ''}
               onChange={handleChange}
               className={inputClass}
             />
@@ -87,7 +85,7 @@ const PersonalInfoForm: React.FC<Props> = ({ id, data, onUpdate }) => {
         <textarea 
           name="profile_summary"
           placeholder="Briefly describe your professional background..."
-          value={formData.profile_summary}
+          value={formData.profile_summary || ""}
           onChange={handleChange}
           className={`${inputClass} h-32 resize-none`} 
         />
@@ -100,7 +98,7 @@ const PersonalInfoForm: React.FC<Props> = ({ id, data, onUpdate }) => {
             <input 
               name={key}
               placeholder={placeholders[key]}
-              value={formData[key as keyof PersonalInfo]}
+              value={formData[key as keyof PersonalInfo] || ""}
               onChange={handleChange}
               className={inputClass}
             />

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session, selectinload
 from typing import List
 from db.database import get_db
 from models.resume import Resume as ResumeModel, Skill, Language, Education, Experience, Project, Achievement, Certificate
-from schemas.resume import PersonalInfoSchema, Resume, ResumeCreate, ResumeBase, SkillSchema, LanguageSchema, EducationSchema, ExperienceSchema, ProjectSchema, AchievementSchema, CertificateSchema
+from schemas.resume import PersonalInfoSchema, Resume, ResumeCreate, ThemeSchema, SkillSchema, LanguageSchema, EducationSchema, ExperienceSchema, ProjectSchema, AchievementSchema, CertificateSchema
 from services.auth import get_current_user
 from services.resume import extract_data_with_gemini
 from models.user import User
@@ -166,3 +166,14 @@ def update_achievements(resume_id: int, items: List[AchievementSchema], db: Sess
 def update_certificates(resume_id: int, items: List[CertificateSchema], db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     get_resume_or_404(db, resume_id, current_user.id)
     update_section(db, resume_id, Certificate, [c.model_dump() for c in items]); return items
+
+@router.put("/{resume_id}/theme", response_model=ThemeSchema)
+def update_theme(resume_id: int, theme_data: ThemeSchema, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    db_resume = get_resume_or_404(db, resume_id, current_user.id)
+    if theme_data.theme is not None:
+        db_resume.theme = theme_data.theme
+    if theme_data.color is not None:
+        db_resume.color = theme_data.color
+    db.commit()
+    db.refresh(db_resume)
+    return db_resume

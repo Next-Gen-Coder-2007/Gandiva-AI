@@ -9,6 +9,8 @@ class Resume(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     title = Column(String, nullable=False)
+    theme = Column(String)
+    color = Column(String)
     profile_summary = Column(Text)
     full_name = Column(String)
     email = Column(String)

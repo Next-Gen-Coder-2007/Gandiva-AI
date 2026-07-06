@@ -55,9 +55,6 @@ export const updateResumeAchievements = async (resumeId: number, achievements: a
   return await api.put(`/resumes/${resumeId}/achievements`, achievements);
 }
 
-export const updateResumeTheme = async (resumeId: number, theme: any, themeColor: any) => {
-  return await api.post(`/resumes/${resumeId}/theme`, {
-    theme, themeColor
-  })
+export const updateResumeTheme = async (resumeId: number, themeData: { theme?: string; color?: string }) => {
+  return await api.put(`/resumes/${resumeId}/theme`, themeData);
 }
-

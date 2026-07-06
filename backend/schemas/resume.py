@@ -56,6 +56,10 @@ class PersonalInfoSchema(BaseModel):
     portfolio: str | None = None
     profile_summary: str | None = None
 
+class ThemeSchema(BaseModel):
+    theme: Optional[str] = None
+    color: Optional[str] = None
+
 class ResumeBase(BaseModel):
     title: str
     profile_summary: Optional[str] = None
@@ -66,6 +70,8 @@ class ResumeBase(BaseModel):
     linkedin: Optional[str] = None
     github: Optional[str] = None
     portfolio: Optional[str] = None
+    theme: Optional[str] = None
+    color: Optional[str] = None
 
 class ResumeCreate(ResumeBase):
     skills: List[SkillSchema] = []
@@ -137,6 +143,8 @@ class ParsedCertificate(BaseModel):
 
 class ParsedResumeData(BaseModel):
     profile_summary: Optional[str] = None
+    theme: Optional[str] = None
+    color: Optional[str] = None
     full_name: Optional[str] = None
     email: Optional[str] = None
     phone: Optional[str] = None

@@ -25,7 +25,6 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
 
   const themeProps = { data, colorTheme };
 
-  // Render the selected layout
   switch (layoutTheme.toLowerCase()) {
     case 'modern':
       return <ModernTheme {...themeProps} />;
