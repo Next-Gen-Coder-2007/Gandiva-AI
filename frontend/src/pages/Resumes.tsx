@@ -27,9 +27,7 @@ const Resumes: React.FC = () => {
     } catch (err) {
       console.error("Failed to fetch resumes");
     } finally {
-        setTimeout(() => {
-          setIsLoading(false);
-        }, 1000);
+      setIsLoading(false);
     }
   };
 
