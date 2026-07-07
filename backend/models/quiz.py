@@ -2,7 +2,6 @@ from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Bool
 from db.database import Base
 from sqlalchemy.sql import func
 
-
 class Quiz(Base):
     __tablename__ = "quizzes"
 
