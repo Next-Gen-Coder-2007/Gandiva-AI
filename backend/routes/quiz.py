@@ -49,10 +49,7 @@ def get_user_quizzes(db: Session = Depends(get_db), current_user: User = Depends
 
 @router.get("/{quiz_id}", response_model=QuizResponse)
 def get_quiz_by_id(quiz_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    quiz = db.query(Quiz).filter(
-        Quiz.id == quiz_id, 
-        Quiz.user_id == current_user.id
-    ).first()
+    quiz = db.query(Quiz).filter(Quiz.id == quiz_id, Quiz.user_id == current_user.id).first()
     
     if not quiz:
         raise HTTPException(
