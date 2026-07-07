@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Sparkles, TrendingUp, Plus, Target } from 'lucide-react';
+import { Sparkles, TrendingUp, Plus, Target, Loader2 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import Modal from '../components/Modal'; 
 
 interface QuizStat {
   label: string;
@@ -16,8 +17,32 @@ interface QuizItem {
 
 const Quizzes: React.FC = () => {
   const { isDark } = useTheme();
-  const [stats] = useState<QuizStat[]>([]); 
-  const [history] = useState<QuizItem[]>([]); 
+  const [stats] = useState<QuizStat[]>([]);
+  const [history] = useState<QuizItem[]>([]);
+
+  // Modal and Form State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [topic, setTopic] = useState('');
+  const [difficulty, setDifficulty] = useState('medium');
+  const [questionCount, setQuestionCount] = useState<number | ''>(5);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleGenerateQuiz = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!topic.trim() || !questionCount) return;
+
+    setIsGenerating(true);
+    
+    // Simulate an API call to generate the AI quiz
+    setTimeout(() => {
+      console.log('Generating Quiz:', { topic, difficulty, questionCount });
+      setIsGenerating(false);
+      setIsModalOpen(false);
+      setTopic(''); // Reset form
+      setDifficulty('medium');
+      setQuestionCount(5);
+    }, 1500);
+  };
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
@@ -40,11 +65,8 @@ const Quizzes: React.FC = () => {
             </p>
             
             <button 
-              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all ${
-                isDark 
-                  ? 'bg-zinc-100 text-zinc-950 hover:bg-white' 
-                  : 'bg-zinc-900 text-white hover:bg-zinc-800'
-              }`}
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all bg-green-600 text-white hover:bg-green-700"
             >
               <Plus className="w-4 h-4" />
               Create Quiz
@@ -77,6 +99,7 @@ const Quizzes: React.FC = () => {
         <h2 className="text-lg font-bold mb-6">Recent Attempts</h2>
         {history.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Map through history items here */}
           </div>
         ) : (
           <div className={`py-16 flex flex-col items-center justify-center text-center ${isDark ? 'text-zinc-600' : 'text-zinc-400'}`}>
@@ -85,6 +108,95 @@ const Quizzes: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Generate Quiz Modal */}
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create AI Quiz">
+        <form onSubmit={handleGenerateQuiz} className="space-y-5">
+          
+          {/* Topic Input */}
+          <div className="space-y-2">
+            <label htmlFor="topic" className={`text-sm font-medium ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>
+              Quiz Topic
+            </label>
+            <input
+              id="topic"
+              type="text"
+              required
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              placeholder="e.g., React Hooks, World War II..."
+              className={`w-full px-4 py-2.5 rounded-xl border transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50 ${
+                isDark 
+                  ? 'bg-zinc-900 border-zinc-800 text-white placeholder-zinc-500' 
+                  : 'bg-zinc-50 border-zinc-200 text-zinc-900 placeholder-zinc-400'
+              }`}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            {/* Difficulty Select */}
+            <div className="space-y-2">
+              <label htmlFor="difficulty" className={`text-sm font-medium ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>
+                Difficulty
+              </label>
+              <select
+                id="difficulty"
+                value={difficulty}
+                onChange={(e) => setDifficulty(e.target.value)}
+                className={`w-full px-4 py-2.5 rounded-xl border transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none ${
+                  isDark 
+                    ? 'bg-zinc-900 border-zinc-800 text-white' 
+                    : 'bg-zinc-50 border-zinc-200 text-zinc-900'
+                }`}
+              >
+                <option value="beginner">Beginner</option>
+                <option value="medium">Intermediate</option>
+                <option value="hard">Expert</option>
+              </select>
+            </div>
+
+            {/* Custom Question Count Input */}
+            <div className="space-y-2">
+              <label htmlFor="count" className={`text-sm font-medium ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>
+                Questions (Max 50)
+              </label>
+              <input
+                id="count"
+                type="number"
+                min="1"
+                max="50"
+                required
+                value={questionCount}
+                onChange={(e) => setQuestionCount(e.target.value ? Number(e.target.value) : '')}
+                className={`w-full px-4 py-2.5 rounded-xl border transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50 ${
+                  isDark 
+                    ? 'bg-zinc-900 border-zinc-800 text-white' 
+                    : 'bg-zinc-50 border-zinc-200 text-zinc-900'
+                }`}
+              />
+            </div>
+          </div>
+
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={isGenerating || !topic.trim() || !questionCount}
+            className="w-full mt-4 flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-green-600 text-white hover:bg-green-700"
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-5 h-5" />
+                Generate Quiz
+              </>
+            )}
+          </button>
+        </form>
+      </Modal>
     </div>
   );
 };
