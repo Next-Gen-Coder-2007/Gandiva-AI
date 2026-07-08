@@ -22,7 +22,6 @@ class Quiz(Base):
     questions = relationship("Question", back_populates="quiz", cascade="all, delete-orphan")
     attempts = relationship("QuizAttempt", back_populates="quiz", cascade="all, delete-orphan")
 
-
 class Question(Base):
     __tablename__ = "questions"
 

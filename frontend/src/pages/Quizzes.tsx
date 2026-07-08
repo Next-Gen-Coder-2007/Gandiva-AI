@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Sparkles, TrendingUp, PlusCircle, Target, Loader2, Trash2, 
-  BookOpen, BarChart, AlertCircle, ChevronRight, Clock 
+  BookOpen, BarChart, AlertCircle, ChevronRight, Clock , Play, History
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import Modal from '../components/Modal'; 
+import { useNavigate } from 'react-router-dom';
 import { createQuiz, getAllQuizzes, deleteQuiz } from '../services/quiz';
 
 interface QuizStat {
@@ -22,6 +23,7 @@ interface QuizItem {
 
 const Quizzes: React.FC = () => {
   const { isDark } = useTheme();
+  const navigate = useNavigate();
   
   const [stats, setStats] = useState<QuizStat[]>([]);
   const [history, setHistory] = useState<QuizItem[]>([]);
@@ -248,7 +250,7 @@ const Quizzes: React.FC = () => {
                     </div>
                   </div>
                   
-                  <div className="mt-auto">
+                  <div className="mt-auto flex flex-col">
                     <h3 className="font-bold text-base leading-tight truncate mb-4" title={quiz.title}>
                       {quiz.title}
                     </h3>
@@ -272,6 +274,28 @@ const Quizzes: React.FC = () => {
                           {quiz.no_of_questions} Questions
                         </span>
                       </div>
+                    </div>
+
+                    {/* NEW ACTION BUTTONS ROW */}
+                    <div className="flex items-center gap-2 mt-5">
+                      <button
+                        onClick={() => navigate(`/quizzes/${quiz.id}/attempt`)}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700 transition-colors"
+                      >
+                        <Play className="w-4 h-4 fill-current" /> Start Quiz
+                      </button>
+                      
+                      <button
+                        onClick={() => navigate(`/quizzes/${quiz.id}/history`)}
+                        className={`flex items-center justify-center p-2.5 rounded-lg border transition-colors ${
+                          isDark 
+                            ? 'border-neutral-700 hover:bg-neutral-800 text-neutral-300' 
+                            : 'border-neutral-300 hover:bg-neutral-100 text-neutral-700'
+                        }`}
+                        title="View Attempt History"
+                      >
+                        <History className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                 </div>

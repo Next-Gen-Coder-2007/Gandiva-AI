@@ -21,3 +21,7 @@ export const getAllQuizzes = async () => {
 export const getQuizById = async (quizId: string | number) => {
   return await api.get(`/quizzes/${quizId}`);
 };
+
+export const submitQuizAttempt = async (quizId: string | number, payload: any) => {
+  return await api.post(`/quizzes/${quizId}/attempts`, payload);
+};
