@@ -2,16 +2,17 @@ from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.orm import Session
 from db.database import get_db
 from schemas.quiz import Quiz as QuizResponse, QuizCreate, QuizAttemptResponse, QuizAttemptSubmit
-from models.quiz import Quiz, QuestionResponse, QuizAttempt, Choice
+from models.quiz import Quiz, QuestionResponse, QuizAttempt, Choice, Question
 from services.auth import get_current_user
 from models.user import User
 from typing import List
 from sqlalchemy.sql import func
+from services.quiz import extract_data_with_gemini
 
 router = APIRouter(prefix="/quizzes", tags=["quizzes"])
 
 @router.post("", response_model=QuizResponse, status_code=status.HTTP_201_CREATED)
-def create_quiz(quiz: QuizCreate,  db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def create_quiz(quiz: QuizCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     quiz_data = quiz.model_dump()
     new_quiz = Quiz(**quiz_data, user_id=current_user.id)
     
@@ -19,6 +20,40 @@ def create_quiz(quiz: QuizCreate,  db: Session = Depends(get_db), current_user: 
     db.commit()
     db.refresh(new_quiz)
     
+    try:
+        ai_payload = extract_data_with_gemini(
+            title=new_quiz.title,
+            difficulty=quiz.difficulty,
+            no_of_questions=new_quiz.no_of_questions
+        )
+        
+        for q_data in ai_payload.get('questions', []):
+            new_question = Question(
+                quiz_id=new_quiz.id, 
+                question_text=q_data['question_text']
+            )
+            db.add(new_question)
+            db.flush()
+            
+            for c_data in q_data.get('choices', []):
+                new_choice = Choice(
+                    question_id=new_question.id,
+                    choice_text=c_data['choice_text'],
+                    is_correct=c_data['is_correct']
+                )
+                db.add(new_choice)
+                
+        db.commit()
+        db.refresh(new_quiz)
+        
+    except Exception as e:
+        db.delete(new_quiz)
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"AI generation failed, quiz creation aborted: {str(e)}"
+        )
+        
     return new_quiz
 
 @router.delete("/{quiz_id}", status_code=status.HTTP_204_NO_CONTENT)

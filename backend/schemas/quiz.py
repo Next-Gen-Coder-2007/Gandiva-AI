@@ -54,6 +54,17 @@ class QuizBase(BaseModel):
 class QuizCreate(QuizBase):
     pass
 
+class AIGeneratedChoice(BaseModel):
+    choice_text: str
+    is_correct: bool
+
+class AIGeneratedQuestion(BaseModel):
+    question_text: str
+    choices: List[AIGeneratedChoice]
+
+class AIGeneratedQuiz(BaseModel):
+    questions: List[AIGeneratedQuestion]
+
 class Quiz(QuizBase):
     id: int
     created_at: datetime
