@@ -4,7 +4,8 @@ import { useTheme } from '../context/ThemeContext';
 import { getQuizById, submitQuizAttempt } from '../services/quiz';
 import { 
   Loader2, ArrowLeft, CheckCircle, AlertCircle, 
-  ChevronLeft, ChevronRight, Send, Clock, Maximize, ShieldAlert
+  ChevronLeft, ChevronRight, Send, Clock, Maximize, ShieldAlert,
+  CheckSquare
 } from 'lucide-react';
 
 export default function AttemptQuiz() {
@@ -18,7 +19,8 @@ export default function AttemptQuiz() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  const [answers, setAnswers] = useState<Record<number, number>>({});
+  // State updated to handle different answer types (number, number array, or string)
+  const [answers, setAnswers] = useState<Record<number, any>>({});
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<any>(null);
@@ -45,19 +47,14 @@ export default function AttemptQuiz() {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
     };
-
     document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-    };
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
   useEffect(() => {
     let timer: any;
     if (isFullscreen && !result) {
-      timer = setInterval(() => {
-        setTimeElapsed(prev => prev + 1);
-      }, 1000);
+      timer = setInterval(() => setTimeElapsed(prev => prev + 1), 1000);
     }
     return () => clearInterval(timer);
   }, [isFullscreen, result]);
@@ -86,8 +83,23 @@ export default function AttemptQuiz() {
     navigate('/quizzes');
   };
 
-  const handleSelectChoice = (questionId: number, choiceId: number) => {
+  // --- NEW HANDLERS FOR POLYMORPHIC QUESTIONS ---
+  const handleSingleChoice = (questionId: number, choiceId: number) => {
     setAnswers(prev => ({ ...prev, [questionId]: choiceId }));
+  };
+
+  const handleMultiChoice = (questionId: number, choiceId: number) => {
+    setAnswers(prev => {
+      const currentSelections = Array.isArray(prev[questionId]) ? prev[questionId] : [];
+      if (currentSelections.includes(choiceId)) {
+        return { ...prev, [questionId]: currentSelections.filter((id: number) => id !== choiceId) };
+      }
+      return { ...prev, [questionId]: [...currentSelections, choiceId] };
+    });
+  };
+
+  const handleTextResponse = (questionId: number, text: string) => {
+    setAnswers(prev => ({ ...prev, [questionId]: text }));
   };
 
   const handleNext = () => {
@@ -104,14 +116,23 @@ export default function AttemptQuiz() {
 
   const handleSubmit = async () => {
     if (!quiz) return;
-    
     setIsSubmitting(true);
+    
     try {
+      // Format payload based on question type
       const payload = {
-        answers: quiz.questions.map((q: any) => ({
-          question_id: q.id,
-          selected_choice_id: answers[q.id] || null
-        }))
+        answers: quiz.questions.map((q: any) => {
+          const ans = answers[q.id];
+          const baseData = { question_id: q.id };
+          
+          if (q.question_type === 'multi_choice') {
+            return { ...baseData, selected_choice_ids: ans || [] };
+          } else if (['short_answer', 'fill_blank'].includes(q.question_type)) {
+            return { ...baseData, text_response: ans || "" };
+          } else {
+            return { ...baseData, selected_choice_id: ans || null };
+          }
+        })
       };
       
       const response = await submitQuizAttempt(id!, payload);
@@ -127,7 +148,14 @@ export default function AttemptQuiz() {
     }
   };
 
-
+  // Calculate answered count dynamically based on value types
+  const answeredCount = quiz?.questions.filter((q: any) => {
+    const ans = answers[q.id];
+    if (ans === undefined || ans === null) return false;
+    if (Array.isArray(ans)) return ans.length > 0;
+    if (typeof ans === 'string') return ans.trim().length > 0;
+    return true;
+  }).length || 0;
 
   if (loading) {
     return (
@@ -159,7 +187,8 @@ export default function AttemptQuiz() {
           </div>
           <h2 className="text-3xl font-black mb-4">Assessment Complete</h2>
           <p className={`text-lg font-medium mb-10 ${isDark ? 'text-neutral-400' : 'text-neutral-500'}`}>
-            You scored <span className="text-green-500 font-bold text-2xl mx-1">{result.score}</span> out of {quiz.no_of_questions}
+            You scored <span className="text-green-500 font-bold text-2xl mx-1">{result.score}</span> 
+            out of {quiz.questions.reduce((acc: number, q: any) => acc + (q.marks || 1), 0)} marks
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <button 
@@ -182,7 +211,6 @@ export default function AttemptQuiz() {
     );
   }
 
-  const answeredCount = Object.keys(answers).length;
   const isComplete = answeredCount === quiz.no_of_questions;
   const progressPercentage = (answeredCount / quiz.no_of_questions) * 100;
   const currentQuestion = quiz.questions[currentQuestionIndex];
@@ -223,8 +251,8 @@ export default function AttemptQuiz() {
           </div>
         </div>
       ) : (
-
         <>
+          {/* Header section remains largely unchanged */}
           <div className={`sticky top-0 z-20 px-6 py-3 border-b flex items-center justify-between shadow-sm backdrop-blur-md ${
             isDark ? 'bg-[#0a0a0a]/90 border-neutral-800' : 'bg-white/90 border-neutral-200'
           }`}>
@@ -259,9 +287,17 @@ export default function AttemptQuiz() {
               <div className={`flex-1 p-6 sm:p-8 rounded-xl border shadow-sm flex flex-col ${isDark ? 'bg-[#0a0a0a] border-neutral-800' : 'bg-white border-neutral-200'}`}>
                 
                 <div className="flex items-center justify-between mb-6 border-b pb-4 border-neutral-200 dark:border-neutral-800">
-                  <span className={`text-xs font-bold uppercase tracking-widest ${isDark ? 'text-neutral-400' : 'text-neutral-500'}`}>
-                    Question {currentQuestionIndex + 1} <span className="mx-1 opacity-50">/</span> {quiz.no_of_questions}
+                  <span className={`text-xs font-bold uppercase tracking-widest flex gap-3 ${isDark ? 'text-neutral-400' : 'text-neutral-500'}`}>
+                    <span>Question {currentQuestionIndex + 1} <span className="mx-1 opacity-50">/</span> {quiz.no_of_questions}</span>
+                    <span className="text-green-600 dark:text-green-500">{currentQuestion.marks} Marks</span>
                   </span>
+                  
+                  {/* Tag indicating multiple choices allowed */}
+                  {currentQuestion.question_type === 'multi_choice' && (
+                    <span className="text-[10px] font-bold px-2 py-1 bg-blue-500/10 text-blue-500 rounded uppercase">
+                      Select multiple
+                    </span>
+                  )}
                 </div>
                 
                 <h2 className="text-xl sm:text-2xl font-semibold mb-8 leading-relaxed">
@@ -269,33 +305,72 @@ export default function AttemptQuiz() {
                 </h2>
                 
                 <div className="space-y-3 max-w-3xl">
-                  {currentQuestion.choices.map((choice: any) => {
-                    const isSelected = answers[currentQuestion.id] === choice.id;
-                    return (
-                      <div 
-                        key={choice.id} 
-                        onClick={() => handleSelectChoice(currentQuestion.id, choice.id)}
-                        className={`group flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-all duration-150 ${
-                          isSelected 
-                            ? isDark 
-                              ? 'bg-green-500/10 border-green-500 text-white' 
-                              : 'bg-green-50 border-green-600 text-black' 
-                            : isDark 
-                              ? 'bg-[#0f0f0f] border-neutral-800 hover:border-neutral-600 text-neutral-300' 
-                              : 'bg-white border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 text-neutral-700'
-                        }`}
-                      >
-                        <div className={`relative flex items-center justify-center w-5 h-5 rounded-full border shrink-0 mt-0.5 transition-colors duration-150 ${
-                          isSelected ? 'border-green-500' : isDark ? 'border-neutral-600 group-hover:border-neutral-400' : 'border-neutral-400 group-hover:border-neutral-500'
-                        }`}>
-                          {isSelected && <div className="absolute w-2.5 h-2.5 rounded-full bg-green-500" />}
+                  
+                  {/* RENDER LOGIC BASED ON QUESTION TYPE */}
+                  {['mcq', 'true_false', 'multi_choice'].includes(currentQuestion.question_type) ? (
+                    currentQuestion.choices.map((choice: any) => {
+                      const isMulti = currentQuestion.question_type === 'multi_choice';
+                      const isSelected = isMulti 
+                        ? (answers[currentQuestion.id] || []).includes(choice.id)
+                        : answers[currentQuestion.id] === choice.id;
+
+                      return (
+                        <div 
+                          key={choice.id} 
+                          onClick={() => isMulti ? handleMultiChoice(currentQuestion.id, choice.id) : handleSingleChoice(currentQuestion.id, choice.id)}
+                          className={`group flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-all duration-150 ${
+                            isSelected 
+                              ? isDark 
+                                ? 'bg-green-500/10 border-green-500 text-white' 
+                                : 'bg-green-50 border-green-600 text-black' 
+                              : isDark 
+                                ? 'bg-[#0f0f0f] border-neutral-800 hover:border-neutral-600 text-neutral-300' 
+                                : 'bg-white border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 text-neutral-700'
+                          }`}
+                        >
+                          <div className={`relative flex items-center justify-center shrink-0 mt-0.5 transition-colors duration-150 ${
+                            isMulti ? 'w-5 h-5 rounded' : 'w-5 h-5 rounded-full'
+                          } border ${
+                            isSelected ? 'border-green-500' : isDark ? 'border-neutral-600 group-hover:border-neutral-400' : 'border-neutral-400 group-hover:border-neutral-500'
+                          }`}>
+                            {isSelected && (
+                              isMulti 
+                                ? <CheckSquare className="w-4 h-4 text-green-500" />
+                                : <div className="absolute w-2.5 h-2.5 rounded-full bg-green-500" />
+                            )}
+                          </div>
+                          <span className="font-medium text-base leading-snug select-none">
+                            {choice.choice_text}
+                          </span>
                         </div>
-                        <span className="font-medium text-base leading-snug select-none">
-                          {choice.choice_text}
-                        </span>
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  ) : currentQuestion.question_type === 'fill_blank' ? (
+                    <input
+                      type="text"
+                      placeholder="Type your answer here..."
+                      value={answers[currentQuestion.id] || ''}
+                      onChange={(e) => handleTextResponse(currentQuestion.id, e.target.value)}
+                      className={`w-full p-4 rounded-xl border font-medium outline-none transition-all ${
+                        isDark 
+                          ? 'bg-[#0f0f0f] border-neutral-800 text-white focus:border-green-500' 
+                          : 'bg-white border-neutral-300 text-black focus:border-green-600 focus:ring-4 focus:ring-green-500/10'
+                      }`}
+                    />
+                  ) : currentQuestion.question_type === 'short_answer' ? (
+                    <textarea
+                      placeholder="Type your detailed answer here..."
+                      rows={5}
+                      value={answers[currentQuestion.id] || ''}
+                      onChange={(e) => handleTextResponse(currentQuestion.id, e.target.value)}
+                      className={`w-full p-4 rounded-xl border font-medium outline-none transition-all resize-y ${
+                        isDark 
+                          ? 'bg-[#0f0f0f] border-neutral-800 text-white focus:border-green-500' 
+                          : 'bg-white border-neutral-300 text-black focus:border-green-600 focus:ring-4 focus:ring-green-500/10'
+                      }`}
+                    />
+                  ) : null}
+                  
                 </div>
               </div>
 
@@ -362,7 +437,9 @@ export default function AttemptQuiz() {
                 
                 <div className="grid grid-cols-5 sm:grid-cols-8 lg:grid-cols-5 gap-2 mb-6 overflow-y-auto pr-1 custom-scrollbar">
                   {quiz.questions.map((q: any, idx: number) => {
-                    const isAnswered = answers[q.id] !== undefined;
+                    const ans = answers[q.id];
+                    const isAnswered = ans !== undefined && ans !== null && 
+                      (Array.isArray(ans) ? ans.length > 0 : typeof ans === 'string' ? ans.trim().length > 0 : true);
                     const isCurrent = currentQuestionIndex === idx;
                     
                     return (
@@ -374,12 +451,10 @@ export default function AttemptQuiz() {
                             ? isDark 
                               ? 'border-2 border-green-500 bg-green-500/10 text-green-400' 
                               : 'border-2 border-green-600 bg-green-50 text-green-700'
-                            
                           : isAnswered
                             ? isDark
                               ? 'bg-green-700 text-white border border-green-600 hover:bg-green-600'
                               : 'bg-green-600 text-white border border-green-700 hover:bg-green-700'
-                            
                           : isDark 
                             ? 'bg-[#111] border border-neutral-800 text-neutral-500 hover:border-neutral-600 hover:text-neutral-300' 
                             : 'bg-white border border-neutral-200 text-neutral-500 hover:border-neutral-300 hover:text-neutral-700'

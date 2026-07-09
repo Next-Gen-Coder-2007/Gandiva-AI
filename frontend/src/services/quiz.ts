@@ -25,3 +25,8 @@ export const getQuizById = async (quizId: string | number) => {
 export const submitQuizAttempt = async (quizId: string | number, payload: any) => {
   return await api.post(`/quizzes/${quizId}/attempts`, payload);
 };
+
+
+export const getAttemptDetails = async (quizId: string | number, attemptId: string | number) => {
+  return await api.get(`/quizzes/${quizId}/attempts/${attemptId}`);
+};

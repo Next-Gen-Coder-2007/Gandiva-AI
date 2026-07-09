@@ -24,24 +24,42 @@ def create_quiz(quiz: QuizCreate, db: Session = Depends(get_db), current_user: U
             difficulty=quiz.difficulty,
             no_of_questions=new_quiz.no_of_questions
         )
+
+        if hasattr(ai_payload, "model_dump"):
+            payload_data = ai_payload.model_dump()
+        elif hasattr(ai_payload, "dict"):
+            payload_data = ai_payload.dict()
+        elif isinstance(ai_payload, dict):
+            payload_data = ai_payload
+        else:
+            payload_data = vars(ai_payload)
+
+        questions_list = payload_data.get('questions', [])
         
-        for q_data in ai_payload.questions:
+        for q_data in questions_list:
+            q_type = q_data.get('question_type')
+            if hasattr(q_type, 'value'):
+                q_type = q_type.value
+
             new_question = Question(
                 quiz_id=new_quiz.id, 
-                question_text=q_data.question_text,
-                question_type=q_data.question_type.value,
-                settings=q_data.settings
+                question_text=q_data.get('question_text'),
+                question_type=q_type,
+                marks=q_data.get('marks', 1),
+                settings=q_data.get('settings')
             )
+
             db.add(new_question)
             db.flush()
+
+            choices_list = q_data.get('choices', [])
             
-            # Only add choices if the AI generated them (Short answer/Fill blanks might not have them)
-            if q_data.choices:
-                for c_data in q_data.choices:
+            if choices_list:
+                for c_data in choices_list:
                     new_choice = Choice(
                         question_id=new_question.id,
-                        choice_text=c_data.choice_text,
-                        is_correct=c_data.is_correct
+                        choice_text=c_data.get('choice_text'),
+                        is_correct=c_data.get('is_correct')
                     )
                     db.add(new_choice)
                 
@@ -127,13 +145,24 @@ def submit_quiz_attempt(quiz_id: int, payload: QuizAttemptSubmit, db: Session = 
     if answers_to_grade:
         batch_grades = grade_batch_short_answers_with_ai(answers_to_grade)
         
-        grade_map = {res.question_id: res for res in batch_grades.results}
+        if hasattr(batch_grades, "model_dump"):
+            batch_data = batch_grades.model_dump()
+        elif hasattr(batch_grades, "dict"):
+            batch_data = batch_grades.dict()
+        elif isinstance(batch_grades, dict):
+            batch_data = batch_grades
+        else:
+            batch_data = vars(batch_grades)
+
+        results_list = batch_data.get('results', [])        
+        grade_map = {res.get('question_id'): res for res in results_list if res.get('question_id') is not None}
         
         for db_response in db_responses:
             if db_response.question_id in grade_map:
                 ai_grade = grade_map[db_response.question_id]
-                db_response.awarded_marks = ai_grade.awarded_marks
-                total_score += ai_grade.awarded_marks
+                awarded = ai_grade.get('awarded_marks', 0)                
+                db_response.awarded_marks = awarded
+                total_score += awarded
 
     new_attempt.score = total_score
     db.add_all(db_responses)
@@ -180,3 +209,19 @@ def get_quiz_by_id(quiz_id: int, db: Session = Depends(get_db), current_user: Us
         )
         
     return quiz
+
+@router.get("/{quiz_id}/attempts/{attempt_id}", response_model=QuizAttemptResponse)
+def get_quiz_attempt_details(quiz_id: int, attempt_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    attempt = db.query(QuizAttempt).filter(
+        QuizAttempt.id == attempt_id,
+        QuizAttempt.quiz_id == quiz_id,
+        QuizAttempt.user_id == current_user.id
+    ).first()
+
+    if not attempt:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Quiz attempt not found or you do not have permission to view it."
+        )
+
+    return attempt

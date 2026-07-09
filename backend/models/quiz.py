@@ -49,6 +49,9 @@ class QuizAttempt(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     quiz_id = Column(Integer, ForeignKey("quizzes.id", ondelete="CASCADE"), nullable=False)
     score = Column(Integer, default=0)
+
+    started_at = Column(DateTime(timezone=True), server_default=func.now())
+    completed_at = Column(DateTime(timezone=True), nullable=True)
     
     responses = relationship("QuestionResponse", back_populates="attempt", cascade="all, delete-orphan")
     quiz = relationship("Quiz", back_populates="attempts")
