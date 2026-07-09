@@ -14,7 +14,7 @@ def extract_data_with_gemini(text: str):
     """
 
     try:
-        gemini_service(prompt, ParsedResumeData)
+        return gemini_service(prompt, ParsedResumeData)
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI Parsing failed: {str(e)}")

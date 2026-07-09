@@ -12,24 +12,20 @@ export default function AttemptQuiz() {
   const navigate = useNavigate();
   const { isDark } = useTheme();
 
-  // Container Ref for requesting Fullscreen on this specific element
   const quizContainerRef = useRef<HTMLDivElement>(null);
 
   const [quiz, setQuiz] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Quiz & Exam State
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<any>(null);
   
-  // Proctoring/Fullscreen State
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [timeElapsed, setTimeElapsed] = useState(0);
 
-  // 1. Fetch Quiz Data
   useEffect(() => {
     if (id) fetchQuiz();
   }, [id]);
@@ -45,7 +41,6 @@ export default function AttemptQuiz() {
     }
   };
 
-  // 2. Fullscreen Listener
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
@@ -57,7 +52,6 @@ export default function AttemptQuiz() {
     };
   }, []);
 
-  // 3. Timer (Only runs when in fullscreen and not finished)
   useEffect(() => {
     let timer: any;
     if (isFullscreen && !result) {
@@ -74,7 +68,6 @@ export default function AttemptQuiz() {
     return `${m}:${s}`;
   };
 
-  // 4. Handlers
   const enterFullscreen = async () => {
     try {
       if (quizContainerRef.current?.requestFullscreen) {
@@ -93,7 +86,6 @@ export default function AttemptQuiz() {
     navigate('/quizzes');
   };
 
-  // FIXED: Reliable click handler for custom div options
   const handleSelectChoice = (questionId: number, choiceId: number) => {
     setAnswers(prev => ({ ...prev, [questionId]: choiceId }));
   };
@@ -125,7 +117,6 @@ export default function AttemptQuiz() {
       const response = await submitQuizAttempt(id!, payload);
       setResult(response.data);
       
-      // Auto-exit fullscreen on submit
       if (document.fullscreenElement) {
         await document.exitFullscreen();
       }
@@ -136,7 +127,7 @@ export default function AttemptQuiz() {
     }
   };
 
-  // ---------------- RENDERERS ---------------- //
+
 
   if (loading) {
     return (
@@ -159,7 +150,6 @@ export default function AttemptQuiz() {
     );
   }
 
-  // --- RESULT SCREEN --- //
   if (result) {
     return (
       <div className={`min-h-screen p-4 sm:p-6 lg:p-8 flex items-center justify-center font-sans ${isDark ? 'bg-black text-white' : 'bg-neutral-50 text-black'}`}>
@@ -198,7 +188,6 @@ export default function AttemptQuiz() {
   const currentQuestion = quiz.questions[currentQuestionIndex];
 
   return (
-    // This wrapper acts as the Fullscreen container
     <div 
       ref={quizContainerRef}
       className={`min-h-screen flex flex-col font-sans transition-colors duration-200 ${
@@ -206,7 +195,6 @@ export default function AttemptQuiz() {
       } ${isFullscreen ? 'h-screen overflow-y-auto' : ''}`}
     >
       
-      {/* --- LOCK SCREEN (Triggers if not in fullscreen) --- */}
       {!isFullscreen ? (
         <div className="flex-1 flex items-center justify-center p-6">
           <div className={`max-w-md w-full p-8 text-center rounded-2xl border shadow-xl ${isDark ? 'bg-[#0a0a0a] border-neutral-800' : 'bg-white border-neutral-200'}`}>
@@ -236,9 +224,7 @@ export default function AttemptQuiz() {
         </div>
       ) : (
 
-        /* --- ACTIVE EXAM UI (Visible only in Fullscreen) --- */
         <>
-          {/* Header */}
           <div className={`sticky top-0 z-20 px-6 py-3 border-b flex items-center justify-between shadow-sm backdrop-blur-md ${
             isDark ? 'bg-[#0a0a0a]/90 border-neutral-800' : 'bg-white/90 border-neutral-200'
           }`}>
@@ -269,7 +255,6 @@ export default function AttemptQuiz() {
 
           <div className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
             
-            {/* Left: Main Question Area */}
             <div className="lg:col-span-3 flex flex-col">
               <div className={`flex-1 p-6 sm:p-8 rounded-xl border shadow-sm flex flex-col ${isDark ? 'bg-[#0a0a0a] border-neutral-800' : 'bg-white border-neutral-200'}`}>
                 
@@ -287,7 +272,6 @@ export default function AttemptQuiz() {
                   {currentQuestion.choices.map((choice: any) => {
                     const isSelected = answers[currentQuestion.id] === choice.id;
                     return (
-                      // Notice: We are using a simple div with onClick here for perfect reliability
                       <div 
                         key={choice.id} 
                         onClick={() => handleSelectChoice(currentQuestion.id, choice.id)}
@@ -315,7 +299,6 @@ export default function AttemptQuiz() {
                 </div>
               </div>
 
-              {/* Bottom: Navigation Controls */}
               <div className="flex items-center justify-between mt-6">
                 <button
                   onClick={handlePrev}
@@ -343,7 +326,6 @@ export default function AttemptQuiz() {
               </div>
             </div>
 
-            {/* Right: Map & Submit Sidebar */}
             <div className="lg:col-span-1">
               <div className={`sticky top-20 p-5 rounded-xl border shadow-sm flex flex-col h-auto max-h-[calc(100vh-6rem)] ${
                 isDark ? 'bg-[#0a0a0a] border-neutral-800' : 'bg-white border-neutral-200'
@@ -353,7 +335,6 @@ export default function AttemptQuiz() {
                   Assessment Map
                 </h3>
 
-                {/* Progress Bar */}
                 <div className="mb-6">
                   <div className="flex justify-between text-xs font-bold mb-2">
                     <span className={isDark ? 'text-neutral-400' : 'text-neutral-600'}>Progress</span>
@@ -367,7 +348,6 @@ export default function AttemptQuiz() {
                   </div>
                 </div>
 
-                {/* Legend */}
                 <div className={`grid grid-cols-1 gap-2.5 mb-5 pb-5 border-b text-[11px] font-bold ${isDark ? 'border-neutral-800 text-neutral-400' : 'border-neutral-200 text-neutral-600'}`}>
                   <div className="flex items-center gap-2">
                     <div className="w-2.5 h-2.5 rounded bg-green-600" /> Answered
@@ -380,7 +360,6 @@ export default function AttemptQuiz() {
                   </div>
                 </div>
                 
-                {/* Question Nav Grid */}
                 <div className="grid grid-cols-5 sm:grid-cols-8 lg:grid-cols-5 gap-2 mb-6 overflow-y-auto pr-1 custom-scrollbar">
                   {quiz.questions.map((q: any, idx: number) => {
                     const isAnswered = answers[q.id] !== undefined;
@@ -391,19 +370,16 @@ export default function AttemptQuiz() {
                         key={q.id}
                         onClick={() => setCurrentQuestionIndex(idx)}
                         className={`relative aspect-square rounded-lg flex items-center justify-center text-xs font-bold transition-all duration-150 ${
-                          // CURRENT
                           isCurrent 
                             ? isDark 
                               ? 'border-2 border-green-500 bg-green-500/10 text-green-400' 
                               : 'border-2 border-green-600 bg-green-50 text-green-700'
                             
-                          // ANSWERED
                           : isAnswered
                             ? isDark
                               ? 'bg-green-700 text-white border border-green-600 hover:bg-green-600'
                               : 'bg-green-600 text-white border border-green-700 hover:bg-green-700'
                             
-                          // PENDING
                           : isDark 
                             ? 'bg-[#111] border border-neutral-800 text-neutral-500 hover:border-neutral-600 hover:text-neutral-300' 
                             : 'bg-white border border-neutral-200 text-neutral-500 hover:border-neutral-300 hover:text-neutral-700'
@@ -415,7 +391,6 @@ export default function AttemptQuiz() {
                   })}
                 </div>
 
-                {/* Submit Block */}
                 <div className="mt-auto pt-5 border-t border-neutral-200 dark:border-neutral-800">
                   <button
                     onClick={handleSubmit}
