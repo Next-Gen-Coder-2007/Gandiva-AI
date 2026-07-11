@@ -178,50 +178,68 @@ const InterviewDashboard: React.FC = () => {
             <button onClick={() => setIsModalOpen(true)} className="px-6 py-3 rounded-xl bg-green-600 text-white font-semibold">Start Practicing</button>
           </div>
         ) : (
-          <div className="space-y-4">
-            {safeInterviewsList.map((session) => (
-              <div key={session.id} className={`flex flex-col sm:flex-row sm:items-center justify-between p-5 rounded-2xl border transition-all ${cardBg} ${isDark ? 'hover:border-zinc-700' : 'hover:border-zinc-300 shadow-sm'}`}>
-                
-                <div className="mb-4 sm:mb-0">
-                  <h3 className="font-bold text-lg">
-                    {session.role} <span className={`text-sm font-normal ${secondaryText}`}>at {session.company || 'Tech Company'}</span>
-                  </h3>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    <span className={`text-xs px-2.5 py-1 rounded-md font-medium ${isDark ? 'bg-zinc-800 text-zinc-300' : 'bg-zinc-100 text-zinc-700'}`}>
-                      {session.difficulty}
-                    </span>
-                    <span className={`text-xs px-2.5 py-1 rounded-md font-medium ${isDark ? 'bg-zinc-800 text-zinc-300' : 'bg-zinc-100 text-zinc-700'}`}>
-                      {session.interview_type}
-                    </span>
-                    <span className={`text-xs px-2.5 py-1 rounded-md font-medium ${session.status === 'completed' ? 'bg-green-500/10 text-green-500' : 'bg-amber-500/10 text-amber-500'}`}>
-                      {session.status.toUpperCase()}
-                    </span>
+            <div className="space-y-4">
+            {safeInterviewsList.map((session, index, array) => {
+              const identicalSessions = array.filter(
+                s => s.role === session.role && s.company === session.company && s.difficulty === session.difficulty
+              ).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+              
+              const attemptNumber = identicalSessions.findIndex(s => s.id === session.id) + 1;
+              const hasMultipleAttempts = identicalSessions.length > 1;
+
+              return (
+                <div key={session.id} className={`flex flex-col sm:flex-row sm:items-center justify-between p-5 rounded-2xl border transition-all ${cardBg} ${isDark ? 'hover:border-zinc-700' : 'hover:border-zinc-300 shadow-sm'}`}>
+                  
+                  <div className="mb-4 sm:mb-0">
+                    <div className="flex items-center gap-3">
+                      <h3 className="font-bold text-lg">
+                        {session.role} <span className={`text-sm font-normal ${secondaryText}`}>at {session.company || 'Tech Company'}</span>
+                      </h3>
+                      {/* NEW: Attempt Badge */}
+                      {hasMultipleAttempts && (
+                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md ${isDark ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-100 text-indigo-700'}`}>
+                          Attempt {attemptNumber}
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      <span className={`text-xs px-2.5 py-1 rounded-md font-medium ${isDark ? 'bg-zinc-800 text-zinc-300' : 'bg-zinc-100 text-zinc-700'}`}>
+                        {session.difficulty}
+                      </span>
+                      <span className={`text-xs px-2.5 py-1 rounded-md font-medium ${isDark ? 'bg-zinc-800 text-zinc-300' : 'bg-zinc-100 text-zinc-700'}`}>
+                        {session.interview_type}
+                      </span>
+                      <span className={`text-xs px-2.5 py-1 rounded-md font-medium ${session.status === 'completed' ? 'bg-green-500/10 text-green-500' : 'bg-amber-500/10 text-amber-500'}`}>
+                        {session.status.toUpperCase()}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    {session.status === 'completed' ? (
+                      <div className="text-right mr-4 hidden sm:block">
+                        <p className={`text-xs font-bold uppercase tracking-wider ${secondaryText}`}>Score</p>
+                        <p className="text-xl font-bold text-green-500">{session.evaluation?.overall_score || 0}/10</p>
+                      </div>
+                    ) : null}
+
+                    <button 
+                      onClick={() => navigate(session.status === 'completed' ? `/interviews/feedback/${session.id}` : `/interviews/session/${session.id}`)}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${isDark ? 'bg-zinc-800 hover:bg-zinc-700 text-white' : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-900'}`}
+                    >
+                      {session.status === 'completed' ? 'View Report' : 'Resume'} <ArrowRight className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={() => handleDelete(session.id)}
+                      className={`p-2 rounded-lg transition-colors ${isDark ? 'text-zinc-500 hover:text-red-400 hover:bg-red-500/10' : 'text-zinc-400 hover:text-red-600 hover:bg-red-50'}`}
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-3">
-                  {session.status === 'completed' ? (
-                    <div className="text-right mr-4 hidden sm:block">
-                      <p className={`text-xs font-bold uppercase tracking-wider ${secondaryText}`}>Score</p>
-                      <p className="text-xl font-bold text-green-500">{session.evaluation?.overall_score || 0}/10</p>
-                    </div>
-                  ) : null}
-
-                  <button 
-                    onClick={() => navigate(session.status === 'completed' ? `/interviews/feedback/${session.id}` : `/interviews/session/${session.id}`)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${isDark ? 'bg-zinc-800 hover:bg-zinc-700 text-white' : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-900'}`}
-                  >
-                    {session.status === 'completed' ? 'View Report' : 'Resume'} <ArrowRight className="w-4 h-4" />
-                  </button>
-                  <button 
-                    onClick={() => handleDelete(session.id)}
-                    className={`p-2 rounded-lg transition-colors ${isDark ? 'text-zinc-500 hover:text-red-400 hover:bg-red-500/10' : 'text-zinc-400 hover:text-red-600 hover:bg-red-50'}`}
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

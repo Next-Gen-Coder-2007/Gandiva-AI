@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Loader2, ArrowLeft, Award, Target, TrendingUp, AlertTriangle, 
-  BookOpen, Map, Zap, CheckCircle2 
+  BookOpen, Map, Zap, CheckCircle2, RotateCcw
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import { getInterview } from '../services/interview';
+import { getInterview, retakeInterview } from '../services/interview'; // Import retakeInterview
 
 const InterviewFeedback: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -14,6 +14,7 @@ const InterviewFeedback: React.FC = () => {
 
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isRetaking, setIsRetaking] = useState(false); // New state for loading the retake
 
   const bgColor = isDark ? 'bg-black' : 'bg-zinc-50';
   const cardBg = isDark ? 'bg-zinc-900/40 border-zinc-800' : 'bg-white border-zinc-200';
@@ -38,6 +39,19 @@ const InterviewFeedback: React.FC = () => {
     };
     fetchSession();
   }, [id, navigate]);
+
+  // Handle the Retake Action
+  const handleRetake = async () => {
+    setIsRetaking(true);
+    try {
+      const response = await retakeInterview(Number(id));
+      // Navigate to the newly created session
+      navigate(`/interviews/session/${response.data.id}`);
+    } catch (error) {
+      console.error("Failed to retake interview", error);
+      setIsRetaking(false);
+    }
+  };
 
   if (loading || !session) {
     return (
@@ -66,21 +80,36 @@ const InterviewFeedback: React.FC = () => {
     <div className={`min-h-screen p-4 sm:p-8 font-sans ${bgColor} ${textColor}`}>
       <div className="max-w-5xl mx-auto space-y-8">
         
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <button 
-            onClick={() => navigate('/interviews')}
-            className={`p-2 rounded-xl transition-colors ${isDark ? 'hover:bg-zinc-800' : 'hover:bg-zinc-200'}`}
-          >
-            <ArrowLeft className="w-6 h-6" />
-          </button>
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight">Evaluation Report</h1>
-            <p className={`mt-1 ${secondaryText}`}>
-              {session.role} at {session.company || 'Tech Company'} • {session.difficulty}
-            </p>
+        {/* Header - Updated with Retake Button */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => navigate('/interviews')}
+              className={`p-2 rounded-xl transition-colors ${isDark ? 'hover:bg-zinc-800' : 'hover:bg-zinc-200'}`}
+            >
+              <ArrowLeft className="w-6 h-6" />
+            </button>
+            <div>
+              <h1 className="text-3xl font-extrabold tracking-tight">Evaluation Report</h1>
+              <p className={`mt-1 ${secondaryText}`}>
+                {session.role} at {session.company || 'Tech Company'} • {session.difficulty}
+              </p>
+            </div>
           </div>
+          
+          <button 
+            onClick={handleRetake}
+            disabled={isRetaking}
+            className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-green-600 text-white font-bold hover:bg-green-700 transition-colors disabled:opacity-70 shadow-lg shadow-green-900/20"
+          >
+            {isRetaking ? (
+              <><Loader2 className="w-5 h-5 animate-spin" /> Generating Session...</>
+            ) : (
+              <><RotateCcw className="w-5 h-5" /> Retake This Interview</>
+            )}
+          </button>
         </div>
+
 
         {/* Top Section: Overall Score & Summary */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

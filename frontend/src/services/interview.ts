@@ -43,3 +43,7 @@ export const evaluateInterview = async (id: number) => {
 export const deleteInterview = async (id: number) => {
   return api.delete(`${API_URL}/${id}`);
 };
+
+export const retakeInterview = async (id: number) => {
+  return api.post(`${API_URL}/${id}/retake`);
+};

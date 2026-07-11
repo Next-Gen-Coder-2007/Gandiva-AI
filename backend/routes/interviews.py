@@ -93,7 +93,6 @@ def start_interview(session_id: int, db: Session = Depends(get_db), current_user
     db.commit()
     return {"message": "Interview started"}
 
-
 @router.post("/question/{question_id}/answer", status_code=status.HTTP_201_CREATED)
 def submit_answer(question_id: int, data: InterviewAnswerSubmit, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     question = db.query(InterviewQuestion).join(InterviewSession).filter(
@@ -103,15 +102,22 @@ def submit_answer(question_id: int, data: InterviewAnswerSubmit, db: Session = D
     if not question:
         raise HTTPException(status_code=404, detail="Question not found")
         
-    db_answer = InterviewAnswer(
-        question_id=question_id,
-        answer_text=data.answer_text,
-        time_taken=data.time_taken
-    )
-    db.add(db_answer)
+    # FIX: Check if an answer already exists to prevent duplicate rows
+    existing_answer = db.query(InterviewAnswer).filter(InterviewAnswer.question_id == question_id).first()
+    
+    if existing_answer:
+        existing_answer.answer_text = data.answer_text
+        existing_answer.time_taken = data.time_taken
+    else:
+        db_answer = InterviewAnswer(
+            question_id=question_id,
+            answer_text=data.answer_text,
+            time_taken=data.time_taken
+        )
+        db.add(db_answer)
+        
     db.commit()
     return {"message": "Answer saved successfully"}
-
 
 @router.post("/{session_id}/evaluate", response_model=InterviewEvaluationResponse)
 def evaluate_interview(session_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
@@ -121,6 +127,11 @@ def evaluate_interview(session_id: int, db: Session = Depends(get_db), current_u
     
     if not db_session:
         raise HTTPException(status_code=404, detail="Session not found")
+
+    # FIX: Prevent duplicate evaluations and save AI costs
+    existing_eval = db.query(InterviewEvaluation).filter(InterviewEvaluation.session_id == session_id).first()
+    if existing_eval:
+        return db.query(InterviewEvaluation).options(selectinload(InterviewEvaluation.feedback)).filter(InterviewEvaluation.id == existing_eval.id).first()
         
     # Compile Q&A pairs for the AI
     qa_pairs = []
@@ -137,7 +148,6 @@ def evaluate_interview(session_id: int, db: Session = Depends(get_db), current_u
         experience=db_session.experience
     )
     
-    # Helper to safely extract values from dict or Pydantic object
     def get_val(key, default=0.0):
         if isinstance(ai_eval, dict):
             return ai_eval.get(key, default)
@@ -185,11 +195,73 @@ def evaluate_interview(session_id: int, db: Session = Depends(get_db), current_u
     db.commit()
     db.refresh(db_eval)
     
-    # Fetch complete evaluation block to return
     return db.query(InterviewEvaluation).options(selectinload(InterviewEvaluation.feedback)).filter(InterviewEvaluation.id == db_eval.id).first()
+
 
 @router.delete("/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_interview(session_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     db_session = get_session_or_404(db, session_id, current_user.id)
     db.delete(db_session)
     db.commit()
+
+# Add this to api/routes/interviews.py
+
+@router.post("/{session_id}/retake", response_model=InterviewSessionResponse, status_code=status.HTTP_201_CREATED)
+def retake_interview(session_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    # 1. Get the original session configuration
+    original_session = db.query(InterviewSession).filter(
+        InterviewSession.id == session_id, 
+        InterviewSession.user_id == current_user.id
+    ).first()
+    
+    if not original_session:
+        raise HTTPException(status_code=404, detail="Original session not found")
+        
+    # 2. Create a new session with the same parameters
+    db_session = InterviewSession(
+        user_id=current_user.id,
+        role=original_session.role,
+        experience=original_session.experience,
+        difficulty=original_session.difficulty,
+        interview_type=original_session.interview_type,
+        duration=original_session.duration,
+        num_questions=original_session.num_questions,
+        skills=original_session.skills,
+        company=original_session.company,
+        status="pending"
+    )
+    db.add(db_session)
+    db.flush() 
+    
+    # 3. Generate fresh questions for the new attempt
+    ai_questions = generate_interview_questions(
+        role=original_session.role, 
+        experience=original_session.experience, 
+        difficulty=original_session.difficulty, 
+        num_questions=original_session.num_questions, 
+        skills=original_session.skills, 
+        company=original_session.company
+    )
+    
+    # Safely extract the list of questions
+    questions_list = ai_questions.get("questions", []) if isinstance(ai_questions, dict) else ai_questions.questions
+    
+    db_questions = []
+    for idx, q in enumerate(questions_list):
+        q_text = q.get("question_text") if isinstance(q, dict) else q.question_text
+        q_category = q.get("category", "General") if isinstance(q, dict) else q.category
+        
+        db_questions.append(
+            InterviewQuestion(
+                session_id=db_session.id,
+                question_text=q_text,
+                category=q_category,
+                order_index=idx
+            )
+        )
+        
+    db.add_all(db_questions)
+    db.commit()
+    db.refresh(db_session)
+    
+    return db.query(InterviewSession).options(selectinload(InterviewSession.questions)).filter(InterviewSession.id == db_session.id).first()
