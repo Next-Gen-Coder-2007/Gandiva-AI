@@ -25,14 +25,15 @@ const InterviewFeedback: React.FC = () => {
     const fetchSession = async () => {
       try {
         const { data } = await getInterview(Number(id));
+        
         if (data.status !== 'completed' || !data.evaluation) {
-          navigate(`/interviews/session/${id}`);
+          navigate(`/interviews/session/${id}`, { replace: true });
         } else {
           setSession(data);
         }
       } catch (error) {
-        console.error("Failed to fetch session", error);
-        navigate('/interviews');
+        console.error("Unauthorized access or session not found.");
+        navigate('/interviews', { replace: true });
       } finally {
         setLoading(false);
       }
@@ -40,12 +41,10 @@ const InterviewFeedback: React.FC = () => {
     fetchSession();
   }, [id, navigate]);
 
-  // Handle the Retake Action
   const handleRetake = async () => {
     setIsRetaking(true);
     try {
       const response = await retakeInterview(Number(id));
-      // Navigate to the newly created session
       navigate(`/interviews/session/${response.data.id}`);
     } catch (error) {
       console.error("Failed to retake interview", error);

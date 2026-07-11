@@ -32,6 +32,7 @@ const InterviewSession: React.FC = () => {
     const fetchSession = async () => {
       try {
         const { data } = await getInterview(Number(id));
+        
         setSession(data);
         
         const firstUnanswered = data.questions.findIndex((q: any) => !q.answer);
@@ -41,13 +42,13 @@ const InterviewSession: React.FC = () => {
             await startInterview(Number(id));
           }
         } else if (data.status === 'completed') {
-          navigate(`/interviews/feedback/${id}`);
+          navigate(`/interviews/feedback/${id}`, { replace: true });
         } else {
           triggerEvaluation();
         }
       } catch (error) {
-        console.error("Failed to fetch session", error);
-        navigate('/interviews');
+        console.error("Unauthorized access or session not found.");
+        navigate('/interviews', { replace: true }); // replace: true prevents them from hitting the back button
       } finally {
         setLoading(false);
       }
