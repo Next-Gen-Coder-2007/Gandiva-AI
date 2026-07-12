@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from db.database import Base, engine
-from routes import auth, google, contact, resume, quiz, jobs, interviews
+from routes import auth, google, contact, resume, quiz, jobs, interviews, interview_socket
 
 from dotenv import load_dotenv
 
@@ -27,5 +27,6 @@ app.include_router(google.router)
 app.include_router(contact.router)
 app.include_router(resume.router)
 app.include_router(quiz.router)
-app.include_router(interviews.router)
+app.include_router(interviews.router, prefix="/api")
+app.include_router(interview_socket.router, prefix='/api')
 app.include_router(jobs.router)

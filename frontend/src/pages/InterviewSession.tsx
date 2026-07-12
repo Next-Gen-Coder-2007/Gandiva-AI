@@ -1,8 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Loader2, Send, Clock, CheckCircle2, AlertCircle, Maximize, ShieldAlert, ArrowLeft } from 'lucide-react';
+import { 
+  Loader2, Mic, MicOff, Clock, ShieldAlert, Maximize, ArrowLeft 
+} from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import { getInterview, startInterview, submitAnswer, evaluateInterview } from '../services/interview';
+import { getInterview, evaluateInterview } from '../services/interview';
+import { useVoiceInterview } from '../hooks/useVoiceInterview';
+
+// New UI Components
+import AudioVisualizer from '../components/AudioVisualizer';
+import ThinkingIndicator from '../components/ThinkingIndicator';
 
 const InterviewSession: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -13,42 +20,45 @@ const InterviewSession: React.FC = () => {
 
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [answerText, setAnswerText] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEvaluating, setIsEvaluating] = useState(false);
   
-  // Fullscreen & Timer State
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [timeSpent, setTimeSpent] = useState(0);
-  const [showSkipAlert, setShowSkipAlert] = useState(false);
 
   const bgColor = isDark ? 'bg-black' : 'bg-zinc-50';
   const cardBg = isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200';
   const textColor = isDark ? 'text-white' : 'text-zinc-900';
   const secondaryText = isDark ? 'text-zinc-400' : 'text-zinc-600';
 
+  // --- Upgraded Voice Hook Integration ---
+  const {
+    isConnected,
+    isRecording,
+    isPlaying,
+    isThinking,
+    volume,
+    transcript,
+    aiText,
+    error: voiceError,
+    connect,
+    disconnect,
+    toggleMute
+  } = useVoiceInterview({
+    sessionId: id || '',
+  });
+
   useEffect(() => {
     const fetchSession = async () => {
       try {
         const { data } = await getInterview(Number(id));
-        
         setSession(data);
         
-        const firstUnanswered = data.questions.findIndex((q: any) => !q.answer);
-        if (firstUnanswered !== -1) {
-          setCurrentQuestionIndex(firstUnanswered);
-          if (data.status === 'pending') {
-            await startInterview(Number(id));
-          }
-        } else if (data.status === 'completed') {
+        if (data.status === 'completed') {
           navigate(`/interviews/feedback/${id}`, { replace: true });
-        } else {
-          triggerEvaluation();
         }
       } catch (error) {
         console.error("Unauthorized access or session not found.");
-        navigate('/interviews', { replace: true }); // replace: true prevents them from hitting the back button
+        navigate('/interviews', { replace: true });
       } finally {
         setLoading(false);
       }
@@ -56,23 +66,28 @@ const InterviewSession: React.FC = () => {
     fetchSession();
   }, [id, navigate]);
 
-  // Fullscreen Listener
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      const isFull = !!document.fullscreenElement;
+      setIsFullscreen(isFull);
+      
+      if (isFull && !isConnected) {
+        connect();
+      } else if (!isFull && isConnected) {
+        disconnect();
+      }
     };
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-  }, []);
+  }, [connect, disconnect, isConnected]);
 
-  // Timer: Only run when in fullscreen and actively answering
   useEffect(() => {
     let timer: any;
-    if (isFullscreen && !isEvaluating) {
+    if (isFullscreen && isConnected && !isEvaluating) {
       timer = setInterval(() => setTimeSpent(prev => prev + 1), 1000);
     }
     return () => clearInterval(timer);
-  }, [isFullscreen, isEvaluating, currentQuestionIndex]);
+  }, [isFullscreen, isConnected, isEvaluating]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -92,43 +107,15 @@ const InterviewSession: React.FC = () => {
   };
 
   const handleExitSession = async () => {
+    disconnect();
     if (document.fullscreenElement) {
       await document.exitFullscreen();
     }
     navigate('/interviews');
   };
 
-  const handleNextClick = () => {
-    if (!answerText.trim()) {
-      setShowSkipAlert(true); // Trigger custom modal instead of window.confirm
-      return;
-    }
-    submitCurrentAnswer();
-  };
-
-  const submitCurrentAnswer = async () => {
-    setShowSkipAlert(false);
-    setIsSubmitting(true);
-    try {
-      const currentQ = session.questions[currentQuestionIndex];
-      await submitAnswer(currentQ.id, answerText || "[Candidate Skipped]", timeSpent);
-      
-      setAnswerText("");
-      setTimeSpent(0);
-
-      if (currentQuestionIndex < session.questions.length - 1) {
-        setCurrentQuestionIndex(prev => prev + 1);
-      } else {
-        await triggerEvaluation();
-      }
-    } catch (error) {
-      console.error("Failed to submit answer", error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const triggerEvaluation = async () => {
+    disconnect();
     setIsEvaluating(true);
     try {
       await evaluateInterview(Number(id));
@@ -155,11 +142,7 @@ const InterviewSession: React.FC = () => {
     return (
       <div className={`min-h-screen flex flex-col items-center justify-center ${bgColor} ${textColor} p-4`}>
         <div className={`p-10 rounded-3xl border ${cardBg} text-center max-w-md w-full shadow-2xl`}>
-          <div className="relative mx-auto w-24 h-24 mb-6">
-            <div className="absolute inset-0 border-4 border-green-500/20 rounded-full"></div>
-            <div className="absolute inset-0 border-4 border-green-500 rounded-full border-t-transparent animate-spin"></div>
-            <CheckCircle2 className="absolute inset-0 m-auto w-10 h-10 text-green-500" />
-          </div>
+          <Loader2 className="w-12 h-12 text-green-500 animate-spin mx-auto mb-6" />
           <h2 className="text-2xl font-bold mb-2">Evaluating Session</h2>
           <p className={secondaryText}>Our AI is analyzing your responses for technical accuracy, communication, and confidence. This will take just a moment.</p>
         </div>
@@ -167,17 +150,12 @@ const InterviewSession: React.FC = () => {
     );
   }
 
-  const currentQuestion = session?.questions[currentQuestionIndex];
-  const progressPercentage = ((currentQuestionIndex) / session?.questions.length) * 100;
-
   return (
     <div 
       ref={sessionContainerRef}
-      className={`min-h-screen flex flex-col font-sans transition-colors duration-200 ${bgColor} ${textColor} ${isFullscreen ? 'h-screen overflow-y-auto' : ''}`}
+      className={`min-h-screen flex flex-col font-sans transition-colors duration-200 ${bgColor} ${textColor} ${isFullscreen ? 'h-screen overflow-hidden' : ''}`}
     >
-      
       {!isFullscreen ? (
-        // Strict Environment Screen
         <div className="flex-1 flex items-center justify-center p-6">
           <div className={`max-w-md w-full p-8 text-center rounded-2xl border shadow-xl ${cardBg}`}>
             <div className="w-16 h-16 rounded-xl bg-amber-500/10 flex items-center justify-center mx-auto mb-6 border border-amber-500/20">
@@ -185,148 +163,114 @@ const InterviewSession: React.FC = () => {
             </div>
             <h2 className="text-xl font-bold mb-3">Strict Environment Required</h2>
             <p className={`font-medium leading-relaxed mb-8 text-sm ${secondaryText}`}>
-              This mock interview requires a distraction-free, full-screen environment to simulate a real assessment. 
-              Exiting full-screen will hide your questions to maintain integrity.
+              This mock interview requires microphone access and a full-screen environment. 
+              Ensure you are in a quiet room. The AI will speak to you and listen to your responses naturally.
             </p>
             <div className="flex flex-col gap-3">
               <button 
                 onClick={enterFullscreen}
                 className="w-full px-6 py-3 rounded-xl bg-green-600 text-white font-bold hover:bg-green-700 transition-colors flex items-center justify-center gap-2 shadow-md"
               >
-                <Maximize className="w-4 h-4" /> Enter Full-Screen
+                <Maximize className="w-4 h-4" /> Enter Session
               </button>
               <button 
                 onClick={handleExitSession}
                 className={`w-full px-6 py-3 rounded-xl font-bold transition-colors ${isDark ? 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
               >
-                Exit Interview
+                Cancel
               </button>
             </div>
           </div>
         </div>
       ) : (
-        // Live Interview Session
         <>
-          {/* Top Navbar */}
-          <header className={`sticky top-0 z-20 px-6 py-4 border-b flex justify-between items-center shadow-sm backdrop-blur-md ${isDark ? 'border-zinc-800 bg-black/90' : 'border-zinc-200 bg-white/90'}`}>
+          <header className={`z-20 px-6 py-4 flex justify-between items-center backdrop-blur-md`}>
             <div className="flex items-center gap-4">
-              <button 
-                onClick={handleExitSession}
-                className={`flex items-center gap-2 text-xs font-bold transition-colors ${isDark ? 'text-zinc-400 hover:text-white' : 'text-zinc-500 hover:text-black'}`}
-              >
-                <ArrowLeft className="w-3.5 h-3.5" /> Save & Exit
-              </button>
-              <div className={`h-4 w-px ${isDark ? 'bg-zinc-800' : 'bg-zinc-300'}`} />
-              <div>
-                <h1 className="font-bold text-sm sm:text-lg truncate">{session.role} Interview</h1>
-                <p className={`text-[10px] sm:text-xs font-medium uppercase tracking-wider ${secondaryText}`}>
-                  Question {currentQuestionIndex + 1} of {session.questions.length}
-                </p>
+              <div className={`hidden sm:flex items-center gap-2 text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-wider ${isDark ? 'bg-zinc-900 text-zinc-400' : 'bg-zinc-100 text-zinc-600'}`}>
+                <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+                {isConnected ? 'Live' : 'Connecting...'}
               </div>
             </div>
 
             <div className="flex items-center gap-4">
-              <div className={`hidden sm:flex items-center gap-2 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider ${isDark ? 'bg-zinc-900 text-zinc-400' : 'bg-zinc-100 text-zinc-600'}`}>
-                <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                Proctored
-              </div>
-              <div className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl font-mono text-sm border ${isDark ? 'bg-zinc-900 border-zinc-800 text-green-400' : 'bg-zinc-100 border-zinc-200 text-green-600'}`}>
+              <button onClick={triggerEvaluation} className="text-xs font-bold px-4 py-2 bg-amber-600 text-white rounded-xl hover:bg-amber-700">
+                End & Evaluate
+              </button>
+              <div className={`flex items-center gap-2 px-4 py-2 rounded-xl font-mono text-sm border ${isDark ? 'bg-zinc-900 border-zinc-800 text-zinc-400' : 'bg-zinc-100 border-zinc-200 text-zinc-600'}`}>
                 <Clock className="w-4 h-4" /> {formatTime(timeSpent)}
               </div>
             </div>
           </header>
 
-          {/* Progress Bar */}
-          <div className="w-full h-1 bg-zinc-800">
-            <div className="h-full bg-green-500 transition-all duration-500" style={{ width: `${progressPercentage}%` }}></div>
-          </div>
-
-          {/* Main Content Area */}
-          <main className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-8 flex flex-col">
-            <div className={`p-6 sm:p-8 rounded-3xl border mb-6 shadow-sm ${cardBg}`}>
-              <div className="flex items-center gap-2 mb-4">
-                <span className={`px-3 py-1 text-xs font-bold uppercase rounded-lg ${isDark ? 'bg-zinc-800 text-zinc-300' : 'bg-zinc-100 text-zinc-700'}`}>
-                  {currentQuestion?.category || 'General'}
-                </span>
+          <main className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-8 flex flex-col justify-center relative">
+            
+            {voiceError && (
+              <div className="absolute top-0 left-0 right-0 p-4 bg-red-500/10 border border-red-500/20 text-red-500 text-center rounded-xl font-medium">
+                {voiceError}
               </div>
-              <h2 className="text-xl sm:text-2xl font-semibold leading-relaxed">
-                {currentQuestion?.question_text}
+            )}
+
+            {/* AI Dialogue Area */}
+            <div className="mb-12 transition-all duration-300 ease-in-out transform">
+              <div className="flex items-center gap-4 mb-6 min-h-[32px]">
+                {isThinking ? (
+                  <ThinkingIndicator />
+                ) : (
+                  <>
+                    <AudioVisualizer isActive={isPlaying} variant="ai" />
+                    <span className={`text-sm font-bold uppercase tracking-wider ${isPlaying ? 'text-green-500' : secondaryText}`}>
+                      Interviewer {isPlaying && 'Speaking...'}
+                    </span>
+                  </>
+                )}
+              </div>
+              <h2 className={`text-2xl sm:text-3xl lg:text-4xl font-medium leading-relaxed transition-opacity duration-300 ${aiText && !isThinking ? 'opacity-100' : 'opacity-40'}`}>
+                {aiText || "Setting up the interview..."}
               </h2>
             </div>
 
-            <div className="flex-1 flex flex-col relative">
-              <textarea
-                value={answerText}
-                onChange={(e) => setAnswerText(e.target.value)}
-                placeholder="Type your answer here..."
-                className={`w-full flex-1 p-6 rounded-3xl border outline-none resize-none transition-colors ${
-                  isDark 
-                    ? 'bg-zinc-900/50 border-zinc-800 focus:border-green-500/50 text-white placeholder:text-zinc-600' 
-                    : 'bg-white border-zinc-200 focus:border-green-500/50 text-zinc-900 placeholder:text-zinc-400'
-                }`}
-              />
-              
-              <div className="absolute bottom-6 right-6 flex items-center gap-3">
-                {!answerText.trim() && (
-                  <span className={`text-sm flex items-center gap-1 ${secondaryText}`}>
-                    <AlertCircle className="w-4 h-4" /> You can skip if unsure
-                  </span>
+            {/* Candidate Transcript Area */}
+            <div className="mt-8 pt-8 border-t border-zinc-800/50">
+               <div className="flex items-center gap-4 mb-4">
+                <AudioVisualizer isActive={isRecording && !isThinking && !isPlaying} variant="candidate" />
+                <span className={`text-sm font-bold uppercase tracking-wider ${isRecording ? 'text-blue-500' : secondaryText}`}>
+                  You {isRecording && !isThinking && !isPlaying && 'Speaking...'}
+                </span>
+              </div>
+              <p className={`text-xl font-medium leading-relaxed ${isDark ? 'text-zinc-400' : 'text-zinc-500'} italic transition-opacity duration-300 ${isThinking ? 'opacity-50' : 'opacity-100'}`}>
+                {transcript || (isConnected ? "Listening..." : "")}
+              </p>
+            </div>
+
+            {/* Floating Controls with Volume Glow Effect */}
+            <div className="fixed bottom-10 left-0 right-0 flex justify-center z-50">
+              <div className={`relative flex items-center gap-4 p-3 rounded-full border backdrop-blur-xl ${isDark ? 'bg-zinc-900/80 border-zinc-800' : 'bg-white/80 border-zinc-200'}`}>
+                
+                {/* Dynamic Volume Glow Ring */}
+                {isRecording && !isThinking && !isPlaying && volume > 0 && (
+                  <div 
+                    className="absolute inset-0 bg-blue-500/20 rounded-full blur-md transition-all duration-75"
+                    style={{ transform: `scale(${1 + (volume / 200)})` }}
+                  />
                 )}
+
                 <button 
-                  onClick={handleNextClick}
-                  disabled={isSubmitting}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all shadow-lg ${
-                    answerText.trim() 
-                      ? 'bg-green-600 hover:bg-green-700 text-white shadow-green-900/20' 
-                      : isDark ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-200 hover:bg-zinc-300 text-zinc-700'
+                  onClick={toggleMute}
+                  disabled={!isConnected}
+                  className={`relative flex items-center justify-center w-14 h-14 rounded-full transition-all z-10 ${
+                    isRecording 
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg' 
+                      : isDark ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-400' : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-600'
                   } disabled:opacity-50`}
                 >
-                  {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <>{answerText.trim() ? 'Submit Answer' : 'Skip'} <Send className="w-4 h-4" /></>}
+                  {isRecording ? <Mic className="w-6 h-6" /> : <MicOff className="w-6 h-6" />}
                 </button>
               </div>
             </div>
+
           </main>
         </>
       )}
-
-      {showSkipAlert && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className={`w-full max-w-md p-6 sm:p-8 rounded-3xl shadow-2xl border ${cardBg}`}>
-            
-            <h3 className="text-xl font-bold mb-6">Skip Question?</h3>
-            
-            <div className="space-y-6">
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-amber-100 dark:bg-amber-900/20 rounded-full shrink-0">
-                  <AlertCircle className="w-6 h-6 text-amber-600 dark:text-amber-500" />
-                </div>
-                <div>
-                  <p className={`mt-1 text-sm leading-relaxed ${secondaryText}`}>
-                    You are about to skip this question without providing an answer. This will negatively impact your technical and completeness score.
-                  </p>
-                </div>
-              </div>
-              
-              <div className={`flex items-center justify-end gap-3 pt-6 border-t ${isDark ? 'border-zinc-800' : 'border-zinc-100'}`}>
-                <button 
-                  onClick={() => setShowSkipAlert(false)} 
-                  className={`px-5 py-2.5 rounded-xl font-semibold transition-colors ${isDark ? 'bg-zinc-800 hover:bg-zinc-700 text-white' : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-900'}`}
-                >
-                  Cancel
-                </button>
-                <button 
-                  onClick={submitCurrentAnswer} 
-                  className="px-5 py-2.5 rounded-xl bg-amber-600 text-white font-semibold hover:bg-amber-700 transition-colors shadow-lg shadow-amber-900/20"
-                >
-                  Skip Question
-                </button>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      )}
-
     </div>
   );
 };

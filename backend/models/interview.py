@@ -16,6 +16,8 @@ class InterviewSession(Base):
     num_questions = Column(Integer)
     skills = Column(Text) 
     company = Column(String)
+    resume_text = Column(Text, nullable=True)
+    job_description = Column(Text, nullable=True)
     status = Column(String, default="pending") # pending, in_progress, completed
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(

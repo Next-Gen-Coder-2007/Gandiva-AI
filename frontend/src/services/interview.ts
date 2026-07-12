@@ -1,6 +1,6 @@
 import { api } from './api';
 
-const API_URL = '/interviews'; // Adjust base URL if needed
+const API_URL = '/api/interviews'; // Adjust base URL if needed
 
 export interface InterviewCreateData {
   role: string;

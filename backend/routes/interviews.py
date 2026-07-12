@@ -5,8 +5,8 @@ from db.database import get_db
 from models.user import User
 from services.auth import get_current_user
 from models.interview import InterviewSession, InterviewQuestion, InterviewAnswer, InterviewEvaluation, InterviewFeedback, InterviewHistory
-from schemas.interview import InterviewCreate, InterviewSessionResponse, InterviewAnswerSubmit, InterviewEvaluationResponse
-from services.interview import generate_interview_questions, evaluate_interview_answers
+from schemas.interview import InterviewCreate, InterviewSessionResponse, InterviewAnswerSubmit, InterviewEvaluationResponse, NextQuestionResponse
+from services.interview import generate_first_question, generate_next_question, evaluate_interview_answers
 
 router = APIRouter(prefix="/interviews", tags=["Interviews"])
 
@@ -35,36 +35,30 @@ def create_interview(data: InterviewCreate, db: Session = Depends(get_db), curre
     db.add(db_session)
     db.flush() 
     
-    # 2. Generate questions via AI
-    ai_questions = generate_interview_questions(
-        role=data.role, experience=data.experience, difficulty=data.difficulty, 
-        num_questions=data.num_questions, skills=data.skills, company=data.company
+    # 2. Generate initial question via AI
+    ai_question = generate_first_question(
+        role=data.role, 
+        experience=data.experience, 
+        difficulty=data.difficulty, 
+        skills=data.skills, 
+        company=data.company
     )
     
-    # 3. Safely extract the list of questions (handles both dict and Pydantic object)
-    questions_list = ai_questions.get("questions", []) if isinstance(ai_questions, dict) else ai_questions.questions
+    # 3. Save first question to DB
+    q_text = ai_question.get("question_text") if isinstance(ai_question, dict) else ai_question.question_text
+    q_category = ai_question.get("category", "General") if isinstance(ai_question, dict) else ai_question.category
     
-    # 4. Save questions to DB
-    db_questions = []
-    for idx, q in enumerate(questions_list):
-        # Handle individual questions as dicts or objects
-        q_text = q.get("question_text") if isinstance(q, dict) else q.question_text
-        q_category = q.get("category", "General") if isinstance(q, dict) else q.category
+    db_question = InterviewQuestion(
+        session_id=db_session.id,
+        question_text=q_text,
+        category=q_category,
+        order_index=0
+    )
         
-        db_questions.append(
-            InterviewQuestion(
-                session_id=db_session.id,
-                question_text=q_text,
-                category=q_category,
-                order_index=idx
-            )
-        )
-        
-    db.add_all(db_questions)
+    db.add(db_question)
     db.commit()
     db.refresh(db_session)
     
-    # Fetch with loaded questions
     return db.query(InterviewSession).options(selectinload(InterviewSession.questions)).filter(InterviewSession.id == db_session.id).first()
 
 @router.get("", response_model=List[InterviewSessionResponse])
@@ -102,7 +96,6 @@ def submit_answer(question_id: int, data: InterviewAnswerSubmit, db: Session = D
     if not question:
         raise HTTPException(status_code=404, detail="Question not found")
         
-    # FIX: Check if an answer already exists to prevent duplicate rows
     existing_answer = db.query(InterviewAnswer).filter(InterviewAnswer.question_id == question_id).first()
     
     if existing_answer:
@@ -119,6 +112,55 @@ def submit_answer(question_id: int, data: InterviewAnswerSubmit, db: Session = D
     db.commit()
     return {"message": "Answer saved successfully"}
 
+@router.post("/{session_id}/next-question", response_model=NextQuestionResponse)
+def get_next_question(session_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    db_session = db.query(InterviewSession).options(
+        selectinload(InterviewSession.questions).selectinload(InterviewQuestion.answer)
+    ).filter(InterviewSession.id == session_id, InterviewSession.user_id == current_user.id).first()
+
+    if not db_session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    current_q_count = len(db_session.questions)
+
+    # Check if we have reached the required number of questions
+    if current_q_count >= db_session.num_questions:
+        return NextQuestionResponse(is_complete=True, message="Interview complete. Ready for evaluation.")
+
+    # Compile Q&A history for the LLM
+    qa_history = []
+    for q in db_session.questions:
+        if q.answer:
+            qa_history.append({"question": q.question_text, "answer": q.answer.answer_text})
+
+    # Generate dynamically adapting question
+    ai_question = generate_next_question(
+        role=db_session.role,
+        experience=db_session.experience,
+        difficulty=db_session.difficulty,
+        skills=db_session.skills,
+        company=db_session.company,
+        qa_history=qa_history,
+        current_q_number=current_q_count + 1,
+        total_questions=db_session.num_questions
+    )
+
+    q_text = ai_question.get("question_text") if isinstance(ai_question, dict) else ai_question.question_text
+    q_category = ai_question.get("category", "General") if isinstance(ai_question, dict) else ai_question.category
+
+    # Save to DB
+    db_question = InterviewQuestion(
+        session_id=session_id,
+        question_text=q_text,
+        category=q_category,
+        order_index=current_q_count
+    )
+    db.add(db_question)
+    db.commit()
+    db.refresh(db_question)
+
+    return NextQuestionResponse(question=db_question, is_complete=False)
+
 @router.post("/{session_id}/evaluate", response_model=InterviewEvaluationResponse)
 def evaluate_interview(session_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     db_session = db.query(InterviewSession).options(
@@ -128,12 +170,10 @@ def evaluate_interview(session_id: int, db: Session = Depends(get_db), current_u
     if not db_session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    # FIX: Prevent duplicate evaluations and save AI costs
     existing_eval = db.query(InterviewEvaluation).filter(InterviewEvaluation.session_id == session_id).first()
     if existing_eval:
         return db.query(InterviewEvaluation).options(selectinload(InterviewEvaluation.feedback)).filter(InterviewEvaluation.id == existing_eval.id).first()
         
-    # Compile Q&A pairs for the AI
     qa_pairs = []
     for q in db_session.questions:
         if q.answer:
@@ -141,7 +181,6 @@ def evaluate_interview(session_id: int, db: Session = Depends(get_db), current_u
         else:
             qa_pairs.append({"question": q.question_text, "answer": "[Candidate skipped or did not answer]"})
             
-    # Trigger AI Evaluation
     ai_eval = evaluate_interview_answers(
         qa_pairs=qa_pairs, 
         role=db_session.role, 
@@ -153,7 +192,6 @@ def evaluate_interview(session_id: int, db: Session = Depends(get_db), current_u
             return ai_eval.get(key, default)
         return getattr(ai_eval, key, default)
     
-    # Save Evaluation
     db_eval = InterviewEvaluation(
         session_id=session_id,
         communication_score=get_val("communication_score", 0.0),
@@ -169,7 +207,6 @@ def evaluate_interview(session_id: int, db: Session = Depends(get_db), current_u
     db.add(db_eval)
     db.flush()
     
-    # Save Feedback
     db_feedback = InterviewFeedback(
         evaluation_id=db_eval.id,
         strengths=get_val("strengths", []),
@@ -184,7 +221,6 @@ def evaluate_interview(session_id: int, db: Session = Depends(get_db), current_u
     
     db_session.status = "completed"
     
-    # Create History Record
     db_history = InterviewHistory(
         session_id=session_id,
         user_id=current_user.id,
@@ -204,11 +240,8 @@ def delete_interview(session_id: int, db: Session = Depends(get_db), current_use
     db.delete(db_session)
     db.commit()
 
-# Add this to api/routes/interviews.py
-
 @router.post("/{session_id}/retake", response_model=InterviewSessionResponse, status_code=status.HTTP_201_CREATED)
 def retake_interview(session_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    # 1. Get the original session configuration
     original_session = db.query(InterviewSession).filter(
         InterviewSession.id == session_id, 
         InterviewSession.user_id == current_user.id
@@ -217,7 +250,6 @@ def retake_interview(session_id: int, db: Session = Depends(get_db), current_use
     if not original_session:
         raise HTTPException(status_code=404, detail="Original session not found")
         
-    # 2. Create a new session with the same parameters
     db_session = InterviewSession(
         user_id=current_user.id,
         role=original_session.role,
@@ -233,34 +265,25 @@ def retake_interview(session_id: int, db: Session = Depends(get_db), current_use
     db.add(db_session)
     db.flush() 
     
-    # 3. Generate fresh questions for the new attempt
-    ai_questions = generate_interview_questions(
+    ai_question = generate_first_question(
         role=original_session.role, 
         experience=original_session.experience, 
         difficulty=original_session.difficulty, 
-        num_questions=original_session.num_questions, 
         skills=original_session.skills, 
         company=original_session.company
     )
     
-    # Safely extract the list of questions
-    questions_list = ai_questions.get("questions", []) if isinstance(ai_questions, dict) else ai_questions.questions
+    q_text = ai_question.get("question_text") if isinstance(ai_question, dict) else ai_question.question_text
+    q_category = ai_question.get("category", "General") if isinstance(ai_question, dict) else ai_question.category
     
-    db_questions = []
-    for idx, q in enumerate(questions_list):
-        q_text = q.get("question_text") if isinstance(q, dict) else q.question_text
-        q_category = q.get("category", "General") if isinstance(q, dict) else q.category
+    db_question = InterviewQuestion(
+        session_id=db_session.id,
+        question_text=q_text,
+        category=q_category,
+        order_index=0
+    )
         
-        db_questions.append(
-            InterviewQuestion(
-                session_id=db_session.id,
-                question_text=q_text,
-                category=q_category,
-                order_index=idx
-            )
-        )
-        
-    db.add_all(db_questions)
+    db.add(db_question)
     db.commit()
     db.refresh(db_session)
     

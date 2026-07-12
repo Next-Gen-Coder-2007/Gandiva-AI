@@ -179,7 +179,7 @@ const InterviewDashboard: React.FC = () => {
           </div>
         ) : (
             <div className="space-y-4">
-            {safeInterviewsList.map((session, index, array) => {
+            {safeInterviewsList.map((session, _ , array) => {
               const identicalSessions = array.filter(
                 s => s.role === session.role && s.company === session.company && s.difficulty === session.difficulty
               ).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());

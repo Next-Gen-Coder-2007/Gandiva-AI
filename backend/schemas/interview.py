@@ -27,6 +27,11 @@ class QuestionResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class NextQuestionResponse(BaseModel):
+    question: Optional[QuestionResponse] = None
+    is_complete: bool = False
+    message: str = ""
+
 class InterviewFeedbackResponse(BaseModel):
     id: int
     strengths: Optional[List[str]] = []
