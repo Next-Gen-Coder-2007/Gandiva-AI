@@ -33,7 +33,23 @@ class AIEvaluationResult(BaseModel):
     recommended_interview: str
 
 
-# --- Service Functions ---
+# ... (Keep your imports at the top)
+
+def clean_ai_hallucinations(text: str) -> str:
+    """Aggressively strips boilerplate placeholders the LLM might hallucinate."""
+    replacements = {
+        "[Candidate Name]": "there",
+        "[Candidate]": "there",
+        "[Name]": "there",
+        "[Company Name]": "our company",
+        "[Company]": "our company",
+        "[Role]": "this role",
+        "[Insert Name]": "there"
+    }
+    for bad_text, good_text in replacements.items():
+        text = text.replace(bad_text, good_text)
+    print(text)
+    return text
 
 def generate_first_question(
     role: str, experience: str, difficulty: str, skills: str, company: str,
@@ -44,28 +60,31 @@ def generate_first_question(
     jd_context = f"\n- Job Description Requirements:\n{job_description}" if job_description else ""
     
     prompt = f"""
-    You are a Principal Engineering Manager and Expert Technical Interviewer at {company or 'a top-tier technology company'}.
+    You are a Hiring Manager at {company or 'a tech company'}.
     You are conducting a professional interview for a '{role}' position.
     
-    Candidate & Role Context:
-    - Experience Level: {experience or 'Not specified'}
-    - Target Difficulty: {difficulty or 'Medium'}
-    - Specific Skills to Test: {skills or 'Core competencies for the role'}{resume_context}{jd_context}
-    
-    Your task is to generate your FIRST spoken dialogue to kick off the interview.
-    
-    Rules:
-    1. internal_assessment: Briefly note your plan for this opening.
-    2. strategic_action: Set to "CONTINUE".
-    3. question_text: Introduce yourself, welcome the candidate, acknowledge their resume if provided, and ask the first introductory question. Speak exactly as a human interviewer would.
-    
-    You must return the result STRICTLY matching the requested JSON schema.
+    Your task is to generate your FIRST spoken dialogue.
+    1. internal_assessment: Briefly note your plan.
+    2. strategic_action: "CONTINUE".
+    3. question_text: Introduce yourself and ask the first question.
+    CRITICAL RULE: NEVER use brackets or placeholders like [Name]. Speak naturally.
     """
-        
+
     try:
-        return gemini_service(prompt, GeneratedQuestion)
+        raw_result = gemini_service(prompt, GeneratedQuestion)
+        
+        # Sledgehammer: Convert dict to object safely
+        if isinstance(raw_result, dict):
+            raw_result['question_text'] = clean_ai_hallucinations(raw_result.get('question_text', ''))
+            return GeneratedQuestion(**raw_result)
+            
+        # If it's already an object, just sanitize and return
+        raw_result.question_text = clean_ai_hallucinations(raw_result.question_text)
+        return raw_result
+        
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"AI Initial Question Generation failed: {str(e)}")
+        print(f"CRASH in next_question: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 def generate_next_question(
@@ -75,50 +94,33 @@ def generate_next_question(
 ) -> GeneratedQuestion:
     
     formatted_history = "\n\n".join([f"Interviewer: {pair['question']}\nCandidate: {pair['answer']}" for pair in qa_history])
-    resume_context = f"\n- Candidate Resume/Background:\n{resume_text}" if resume_text else ""
-    jd_context = f"\n- Job Description Requirements:\n{job_description}" if job_description else ""
     
     prompt = f"""
-    You are a Principal Engineering Manager and Expert Technical Interviewer at {company or 'a top-tier technology company'}.
-    You are conducting an interview for a '{role}' position.
-    
+    You are a Hiring Manager interviewing for a '{role}' position.
     This is Question {current_q_number} out of {total_questions}.
     
-    Candidate & Role Context:
-    - Experience Level: {experience or 'Not specified'}
-    - Target Baseline Difficulty: {difficulty or 'Medium'}
-    - Specific Skills to Test: {skills or 'Core competencies for the role'}{resume_context}{jd_context}
-    
-    Here is the conversation transcript so far:
+    Transcript so far:
     {formatted_history}
     
-    Your task is to evaluate the candidate's last answer and generate your next spoken response.
-    
-    Step 1: internal_assessment
-    Critique their last answer. Was it accurate? Too shallow? Did they miss an edge case? Are they struggling?
-    
-    Step 2: strategic_action
-    Based on your assessment, pick ONE action:
-    - ASK_FOLLOW_UP: They missed a detail, ask them to clarify.
-    - GIVE_HINT: They are struggling, guide them gently.
-    - DECREASE_DIFFICULTY: They failed the last question, ask something more foundational.
-    - INCREASE_DIFFICULTY: They nailed it easily, push them harder.
-    - CHALLENGE_CANDIDATE: Present an edge case that breaks their proposed solution.
-    - PIVOT_TOPIC: Move to a new behavioral, HR, or technical skill area.
-    
-    Step 3: question_text (Your Spoken Dialogue)
-    React naturally to their answer based on your chosen strategy, then ask the next question.
-    - Example (Hint): "You're on the right track with the cache. But what happens if the cache goes down?"
-    - Example (Challenge): "Great explanation. However, how would your database schema handle a sudden 10x spike in writes?"
-    - Speak naturally, smoothly, and professionally. NEVER say "Next question".
-    
-    You must return the result STRICTLY matching the requested JSON schema.
+    Evaluate the last answer. Pick a strategic_action (ASK_FOLLOW_UP, GIVE_HINT, INCREASE_DIFFICULTY, etc.).
+    Then generate the 'question_text'. 
+    CRITICAL RULE: NEVER use brackets or placeholders like [Name]. 
     """
-        
     try:
-        return gemini_service(prompt, GeneratedQuestion)
+        raw_result = gemini_service(prompt, GeneratedQuestion)
+        
+        # Sledgehammer: Convert dict to object safely
+        if isinstance(raw_result, dict):
+            raw_result['question_text'] = clean_ai_hallucinations(raw_result.get('question_text', ''))
+            return GeneratedQuestion(**raw_result)
+            
+        # If it's already an object, just sanitize and return
+        raw_result.question_text = clean_ai_hallucinations(raw_result.question_text)
+        return raw_result
+        
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"AI Next Question Generation failed: {str(e)}")
+        print(f"CRASH in next_question: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 def evaluate_interview_answers(qa_pairs: List[dict], role: str, experience: str) -> AIEvaluationResult:

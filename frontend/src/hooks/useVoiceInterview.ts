@@ -2,16 +2,14 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 
 interface UseVoiceInterviewProps {
   sessionId: string | number;
-  onAudioStart?: () => void;
-  onAudioStop?: () => void;
 }
 
-export const useVoiceInterview = ({ sessionId, onAudioStart, onAudioStop }: UseVoiceInterviewProps) => {
+export const useVoiceInterview = ({ sessionId }: UseVoiceInterviewProps) => {
   const [isConnected, setIsConnected] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isThinking, setIsThinking] = useState(false); // NEW: Thinking state
-  const [volume, setVolume] = useState(0); // NEW: Live volume 0-100
+  const [isThinking, setIsThinking] = useState(false); 
+  const [volume, setVolume] = useState(0); 
   const [transcript, setTranscript] = useState("");
   const [aiText, setAiText] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -21,29 +19,24 @@ export const useVoiceInterview = ({ sessionId, onAudioStart, onAudioStop }: UseV
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
   
-  // NEW: Audio Analysers for UI Visuals
   const micAnalyserRef = useRef<AnalyserNode | null>(null);
   const playbackAnalyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number>(null);
-
   const nextPlayTimeRef = useRef<number>(0);
 
-  // --- NEW: Volume Polling Loop ---
   const updateVolume = useCallback(() => {
     let currentVolume = 0;
-    
     if (isRecording && micAnalyserRef.current) {
       const dataArray = new Uint8Array(micAnalyserRef.current.frequencyBinCount);
       micAnalyserRef.current.getByteFrequencyData(dataArray);
       const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
-      currentVolume = Math.min(100, Math.round((avg / 255) * 150)); // Scaled for visibility
+      currentVolume = Math.min(100, Math.round((avg / 255) * 150)); 
     } else if (isPlaying && playbackAnalyserRef.current) {
       const dataArray = new Uint8Array(playbackAnalyserRef.current.frequencyBinCount);
       playbackAnalyserRef.current.getByteFrequencyData(dataArray);
       const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
       currentVolume = Math.min(100, Math.round((avg / 255) * 150));
     }
-
     setVolume(currentVolume);
     animationFrameRef.current = requestAnimationFrame(updateVolume);
   }, [isRecording, isPlaying]);
@@ -59,7 +52,6 @@ export const useVoiceInterview = ({ sessionId, onAudioStart, onAudioStop }: UseV
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
     };
   }, [isRecording, isPlaying, updateVolume]);
-  // ---------------------------------
 
   const connect = useCallback(async () => {
     try {
@@ -69,7 +61,6 @@ export const useVoiceInterview = ({ sessionId, onAudioStart, onAudioStop }: UseV
       const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
       audioCtxRef.current = audioCtx;
 
-      // Initialize Playback Analyser
       const playbackAnalyser = audioCtx.createAnalyser();
       playbackAnalyser.fftSize = 256;
       playbackAnalyser.connect(audioCtx.destination);
@@ -94,37 +85,29 @@ export const useVoiceInterview = ({ sessionId, onAudioStart, onAudioStop }: UseV
             setTranscript(msg.text);
           } else if (msg.type === "STT_FINAL") {
             setTranscript(msg.text);
-            setIsThinking(true); // Candidate finished, AI is thinking
+            setIsThinking(true);
           } else if (msg.type === "AI_TEXT") {
             setAiText(msg.text);
-            setIsThinking(false); // AI got the answer, stopped thinking
-          } else if (msg.type === "TTS_COMPLETE") {
-            // Handled automatically when buffer ends
+            setIsThinking(false);
+          } else if (msg.type === "PROCESSING_START") {
+             // New state to bridge the gap while local STT runs
+             setIsThinking(true);
+             setTranscript("Processing your answer...");
           }
         } else if (event.data instanceof Blob) {
           await playAudioChunk(event.data, audioCtx, playbackAnalyser);
         }
       };
 
-      ws.onerror = () => {
-        setError("Connection error. Please try again.");
-      };
-
-      ws.onclose = () => {
-        setIsConnected(false);
-        stopAll();
-      };
+      ws.onclose = () => stopAll();
 
     } catch (err) {
-      console.error("Failed to initialize voice interview", err);
-      setError("Microphone access denied or audio system failed.");
+      setError("Microphone access denied.");
     }
   }, [sessionId]);
 
   const startStreaming = (stream: MediaStream, audioCtx: AudioContext, ws: WebSocket) => {
     const source = audioCtx.createMediaStreamSource(stream);
-    
-    // Initialize Mic Analyser
     const micAnalyser = audioCtx.createAnalyser();
     micAnalyser.fftSize = 256;
     source.connect(micAnalyser);
@@ -134,7 +117,8 @@ export const useVoiceInterview = ({ sessionId, onAudioStart, onAudioStop }: UseV
     processorRef.current = processor;
 
     processor.onaudioprocess = (e) => {
-      if (ws.readyState === WebSocket.OPEN && isRecording) {
+      // Only send bytes if we are actively recording and NOT thinking
+      if (ws.readyState === WebSocket.OPEN && isRecording && !isThinking && !isPlaying) {
         const inputData = e.inputBuffer.getChannelData(0);
         const pcm16 = new Int16Array(inputData.length);
         for (let i = 0; i < inputData.length; i++) {
@@ -150,18 +134,13 @@ export const useVoiceInterview = ({ sessionId, onAudioStart, onAudioStop }: UseV
   };
 
   const playAudioChunk = async (blob: Blob, audioCtx: AudioContext, analyser: AnalyserNode) => {
-    if (!isPlaying) {
-      setIsPlaying(true);
-      onAudioStart?.();
-    }
+    if (!isPlaying) setIsPlaying(true);
 
     const arrayBuffer = await blob.arrayBuffer();
     try {
       const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
       const source = audioCtx.createBufferSource();
       source.buffer = audioBuffer;
-      
-      // Connect to our playback analyser instead of directly to destination
       source.connect(analyser);
 
       const currentTime = audioCtx.currentTime;
@@ -175,21 +154,25 @@ export const useVoiceInterview = ({ sessionId, onAudioStart, onAudioStop }: UseV
       source.onended = () => {
         if (audioCtx.currentTime >= nextPlayTimeRef.current) {
           setIsPlaying(false);
-          onAudioStop?.();
+          setIsRecording(true); // Automatically open the mic after AI finishes
         }
       };
     } catch (err) {
-      console.error("Audio decoding error", err);
+      console.error(err);
     }
   };
 
   const toggleMute = () => {
-    setIsRecording(prev => {
-      // If muting, cancel barge-in/thinking just in case
-      if (prev) setIsThinking(false);
-      return !prev;
-    });
+    setIsRecording(prev => !prev);
   };
+
+  // --- NEW: Submit Answer Trigger ---
+  const submitAnswer = useCallback(() => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: "CLIENT_SPEECH_DONE" }));
+      setIsThinking(true);
+    }
+  }, []);
 
   const stopAll = useCallback(() => {
     if (wsRef.current) wsRef.current.close();
@@ -205,9 +188,7 @@ export const useVoiceInterview = ({ sessionId, onAudioStart, onAudioStop }: UseV
   }, []);
 
   useEffect(() => {
-    return () => {
-      stopAll();
-    };
+    return () => stopAll();
   }, [stopAll]);
 
   return {
@@ -221,6 +202,7 @@ export const useVoiceInterview = ({ sessionId, onAudioStart, onAudioStop }: UseV
     error,
     connect,
     disconnect: stopAll,
-    toggleMute
+    toggleMute,
+    submitAnswer // Export the new function
   };
 };
