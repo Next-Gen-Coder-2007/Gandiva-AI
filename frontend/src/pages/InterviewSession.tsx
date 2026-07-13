@@ -25,7 +25,7 @@ const InterviewSession: React.FC = () => {
   const iconBg = isDark ? 'bg-[#1e1e2d] border-[#161622]' : 'bg-zinc-100 border-white shadow-sm';
 
   const sessionContainerRef = useRef<HTMLDivElement>(null);
-  const [session, setSession] = useState<any>(null);
+  const [_, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -39,7 +39,6 @@ const InterviewSession: React.FC = () => {
     volume,
     transcript,
     aiText,
-    error: voiceError,
     connect,
     disconnect,
     toggleMute,
