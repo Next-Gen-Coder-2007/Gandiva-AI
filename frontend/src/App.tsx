@@ -24,6 +24,7 @@ import AttemptHistory from './pages/AttemptHistory';
 import InterviewDashboard from './pages/InterviewDashboard';
 import InterviewSession from './pages/InterviewSession';
 import InterviewFeedback from './pages/InterviewFeedback';
+import RoadmapDetail from './pages/RoadmapDetail';
 
 function App() {
   useLenis();
@@ -59,6 +60,7 @@ function App() {
                 
                 {/* Other Modules */}
                 <Route path='/roadmaps' element={<Roadmaps />} />
+                <Route path='/roadmaps/:id' element={<RoadmapDetail />} />
                 <Route path='/internships' element={<Internships />} />
                 <Route path='/settings' element={<Settings />} />
               </Route>
