@@ -33,8 +33,6 @@ class AIEvaluationResult(BaseModel):
     recommended_interview: str
 
 
-# ... (Keep your imports at the top)
-
 def clean_ai_hallucinations(text: str) -> str:
     """Aggressively strips boilerplate placeholders the LLM might hallucinate."""
     replacements = {
