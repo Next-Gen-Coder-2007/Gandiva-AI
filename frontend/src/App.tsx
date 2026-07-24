@@ -23,6 +23,7 @@ import Interviews from './pages/Interviews';
 import InterviewSession from './pages/InterviewSession';
 import InterviewFeedback from './pages/InterviewFeedback';
 import RoadmapDetail from './pages/RoadmapDetail';
+import ResumeAnalysis from './pages/ResumeAnalysis';
 
 function App() {
   useLenis();
@@ -44,7 +45,8 @@ function App() {
                 <Route path='/resumes' element={<Resumes />} />
                 <Route path="/resumes/edit-resume/:id" element={<EditResume />} />
                 <Route path="/resumes/view/:id" element={<ResumeView />} />
-                
+                <Route path="/resumes/:id/analyze" element={<ResumeAnalysis />} />
+
                 <Route path='/quizzes' element={<Quizzes />} />
                 <Route path="/quizzes/:id/attempt" element={<AttemptQuiz />} />
                 <Route path="/quizzes/:id/history" element={<AttemptHistory />} />

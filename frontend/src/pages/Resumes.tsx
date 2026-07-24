@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, UploadCloud, FileText, LayoutGrid, Loader2, Eye, Pencil, Trash2 } from 'lucide-react';
+import { PlusCircle, UploadCloud, FileText, LayoutGrid, Loader2, Eye, Pencil, Trash2, Sparkles } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { createResume, getAllResumes, deleteResume, uploadResume } from '../services/resume';
 import { useNavigate } from 'react-router-dom';
@@ -178,6 +178,13 @@ const Resumes: React.FC = () => {
                     title="Edit"
                   >
                     <Pencil className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={() => navigate(`/resumes/${r.id}/analyze`)}
+                    className={`p-2.5 md:p-2 rounded-lg transition-colors ${isDark ? 'text-zinc-400 hover:text-purple-400 hover:bg-purple-500/10' : 'text-zinc-500 hover:text-purple-600 hover:bg-purple-50'}`}
+                    title="Analyze AI"
+                  >
+                    <Sparkles className="w-4 h-4" />
                   </button>
                   <button 
                     onClick={() => handleDeleteClick(r.id)}
