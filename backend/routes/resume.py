@@ -7,8 +7,10 @@ from typing import List
 from db.database import get_db
 from models.resume import Resume as ResumeModel, Skill, Language, Education, Experience, Project, Achievement, Certificate
 from schemas.resume import PersonalInfoSchema, Resume, ResumeCreate, ThemeSchema, SkillSchema, LanguageSchema, EducationSchema, ExperienceSchema, ProjectSchema, AchievementSchema, CertificateSchema
+from schemas.resume_analysis import AnalyzeResumeRequest, ResumeAnalysisResponseDB
 from services.auth import get_current_user
 from services.resume import extract_data_with_gemini
+from services.resume_analysis import process_and_save_analysis, get_latest_analysis
 from models.user import User
 
 router = APIRouter(prefix="/resumes", tags=["Resumes"])
@@ -179,3 +181,17 @@ def update_theme(resume_id: int, theme_data: ThemeSchema, db: Session = Depends(
     db.commit()
     db.refresh(db_resume)
     return db_resume
+
+@router.post("/{resume_id}/analyze", response_model=ResumeAnalysisResponseDB, status_code=status.HTTP_201_CREATED)
+def analyze_resume_endpoint(resume_id: int,request: AnalyzeResumeRequest,db: Session = Depends(get_db),current_user: User = Depends(get_current_user)):
+    resume = get_resume_or_404(db, resume_id, current_user.id)
+    analysis = process_and_save_analysis(db, resume, request)
+    return analysis
+
+@router.get("/{resume_id}/analysis", response_model=ResumeAnalysisResponseDB)
+def get_resume_analysis_endpoint(resume_id: int,db: Session = Depends(get_db),current_user: User = Depends(get_current_user)):
+    resume = get_resume_or_404(db, resume_id, current_user.id)
+    analysis = get_latest_analysis(db, resume.id)
+    if not analysis:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No analysis found for this resume.")
+    return analysis

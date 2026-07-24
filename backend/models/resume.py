@@ -34,6 +34,8 @@ class Resume(Base):
     achievements = relationship("Achievement", back_populates="resume", cascade="all, delete-orphan")
     certificates = relationship("Certificate", back_populates="resume", cascade="all, delete-orphan")
 
+    analyses = relationship("ResumeAnalysis", back_populates="resume", cascade="all, delete-orphan")
+
 class Skill(Base):
     __tablename__ = "skills"
 
