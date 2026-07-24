@@ -1,58 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  Loader2, ArrowLeft, Award, Target, TrendingUp, AlertTriangle, 
-  BookOpen, Map, Zap, CheckCircle2, RotateCcw
-} from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import { getInterview, retakeInterview } from '../services/interview'; // Import retakeInterview
+import { ArrowLeft, Award, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { getInterviewDetails } from '../services/interview'; 
 
 const InterviewFeedback: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isDark } = useTheme();
-
+  
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [isRetaking, setIsRetaking] = useState(false); // New state for loading the retake
 
-  const bgColor = isDark ? 'bg-black' : 'bg-zinc-50';
+  const bgColor = isDark ? 'bg-black' : 'bg-white';
   const cardBg = isDark ? 'bg-zinc-900/40 border-zinc-800' : 'bg-white border-zinc-200';
   const textColor = isDark ? 'text-white' : 'text-zinc-900';
   const secondaryText = isDark ? 'text-zinc-400' : 'text-zinc-600';
 
   useEffect(() => {
-    const fetchSession = async () => {
+    const fetchFeedback = async () => {
       try {
-        const { data } = await getInterview(Number(id));
-        
-        if (data.status !== 'completed' || !data.evaluation) {
-          navigate(`/interviews/session/${id}`, { replace: true });
-        } else {
-          setSession(data);
-        }
+        const data = await getInterviewDetails(id!);
+        setSession(data);
       } catch (error) {
-        console.error("Unauthorized access or session not found.");
-        navigate('/interviews', { replace: true });
+        console.error("Failed to load feedback", error);
       } finally {
         setLoading(false);
       }
     };
-    fetchSession();
-  }, [id, navigate]);
+    fetchFeedback();
+  }, [id]);
 
-  const handleRetake = async () => {
-    setIsRetaking(true);
-    try {
-      const response = await retakeInterview(Number(id));
-      navigate(`/interviews/session/${response.data.id}`);
-    } catch (error) {
-      console.error("Failed to retake interview", error);
-      setIsRetaking(false);
-    }
-  };
-
-  if (loading || !session) {
+  if (loading) {
     return (
       <div className={`min-h-screen flex items-center justify-center ${bgColor}`}>
         <Loader2 className="w-10 h-10 text-green-500 animate-spin" />
@@ -60,166 +39,84 @@ const InterviewFeedback: React.FC = () => {
     );
   }
 
-  const { evaluation } = session;
-  const { feedback } = evaluation;
-
-  const ScoreCard = ({ title, score, icon: Icon }: { title: string, score: number, icon: any }) => (
-    <div className={`p-4 rounded-2xl border flex items-center justify-between ${cardBg}`}>
-      <div className="flex items-center gap-3">
-        <div className={`p-2.5 rounded-xl ${isDark ? 'bg-zinc-800' : 'bg-zinc-100'}`}>
-          <Icon className="w-5 h-5 text-green-500" />
-        </div>
-        <span className="font-semibold text-sm">{title}</span>
+  if (!session || !session.evaluation) {
+    return (
+      <div className={`min-h-screen flex flex-col items-center justify-center font-sans ${bgColor} ${textColor}`}>
+        <p className="mb-4 font-bold text-xl">Evaluation not found or still processing.</p>
+        <button onClick={() => navigate('/interviews')} className="px-6 py-2 bg-green-600 text-white rounded-xl">Back to Dashboard</button>
       </div>
-      <span className="text-xl font-bold">{score}/10</span>
-    </div>
-  );
+    );
+  }
+
+  const { overall_score, strengths, areas_of_improvement, detailed_feedback } = session.evaluation;
 
   return (
-    <div className={`min-h-screen p-4 sm:p-8 font-sans ${bgColor} ${textColor}`}>
-      <div className="max-w-5xl mx-auto space-y-8">
-        
-        {/* Header - Updated with Retake Button */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={() => navigate('/interviews')}
-              className={`p-2 rounded-xl transition-colors ${isDark ? 'hover:bg-zinc-800' : 'hover:bg-zinc-200'}`}
-            >
-              <ArrowLeft className="w-6 h-6" />
-            </button>
+    <div className={`min-h-screen p-4 sm:p-8 max-w-5xl mx-auto font-sans ${bgColor} ${textColor}`}>
+      <button onClick={() => navigate('/interviews')} className={`mb-6 flex items-center gap-2 text-sm font-medium ${secondaryText} hover:${textColor} transition-colors`}>
+        <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+      </button>
+
+      <div className="mb-8">
+        <h1 className="text-3xl font-extrabold">{session.role} Interview Report</h1>
+        <p className={`mt-1 ${secondaryText}`}>Completed on {new Date(session.completed_at).toLocaleDateString()}</p>
+      </div>
+
+      <div className="flex flex-col md:flex-row gap-6 mb-12">
+        {/* Score Card */}
+        <div className={`flex-shrink-0 p-8 rounded-3xl border flex flex-col items-center justify-center text-center ${cardBg} md:w-72`}>
+          <Award className={`w-12 h-12 mb-4 ${overall_score >= 7 ? 'text-green-500' : 'text-amber-500'}`} />
+          <h2 className="text-5xl font-extrabold mb-2">{overall_score}<span className={`text-2xl ${secondaryText}`}>/10</span></h2>
+          <p className={`text-sm font-bold uppercase tracking-wider ${secondaryText}`}>Overall Score</p>
+        </div>
+
+        {/* Strengths & Weaknesses */}
+        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className={`p-6 rounded-3xl border ${cardBg}`}>
+            <h3 className="font-bold flex items-center gap-2 mb-4 text-lg"><CheckCircle className="w-5 h-5 text-green-500" /> Strengths</h3>
+            <ul className="space-y-3">
+              {strengths?.map((item: string, i: number) => (
+                <li key={i} className="flex items-start gap-3 text-sm">
+                  <span className="text-green-500 mt-0.5">•</span> 
+                  <span className={`leading-relaxed ${secondaryText}`}>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className={`p-6 rounded-3xl border ${cardBg}`}>
+            <h3 className="font-bold flex items-center gap-2 mb-4 text-lg"><XCircle className="w-5 h-5 text-red-500" /> Areas to Improve</h3>
+            <ul className="space-y-3">
+              {areas_of_improvement?.map((item: string, i: number) => (
+                <li key={i} className="flex items-start gap-3 text-sm">
+                  <span className="text-red-500 mt-0.5">•</span> 
+                  <span className={`leading-relaxed ${secondaryText}`}>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      {/* Detailed Q&A Feedback */}
+      <h3 className="text-2xl font-bold mb-6">Question Breakdown</h3>
+      <div className="space-y-6">
+        {detailed_feedback?.map((item: any, i: number) => (
+          <div key={i} className={`p-6 sm:p-8 rounded-3xl border ${cardBg}`}>
+            <div className="mb-6">
+              <span className={`text-xs font-bold uppercase tracking-wider ${secondaryText}`}>Question {i + 1}</span>
+              <p className="font-medium text-lg mt-2">{item.question}</p>
+            </div>
+            
+            <div className={`p-5 rounded-2xl mb-6 ${isDark ? 'bg-zinc-950' : 'bg-zinc-50'}`}>
+              <span className={`text-xs font-bold uppercase tracking-wider ${secondaryText}`}>Your Answer</span>
+              <p className="text-sm mt-2 whitespace-pre-wrap">{item.user_answer}</p>
+            </div>
+            
             <div>
-              <h1 className="text-3xl font-extrabold tracking-tight">Evaluation Report</h1>
-              <p className={`mt-1 ${secondaryText}`}>
-                {session.role} at {session.company || 'Tech Company'} • {session.difficulty}
-              </p>
+              <span className={`text-xs font-bold uppercase tracking-wider text-green-500`}>AI Feedback</span>
+              <p className={`text-sm mt-2 leading-relaxed ${secondaryText}`}>{item.feedback}</p>
             </div>
           </div>
-          
-          <button 
-            onClick={handleRetake}
-            disabled={isRetaking}
-            className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-green-600 text-white font-bold hover:bg-green-700 transition-colors disabled:opacity-70 shadow-lg shadow-green-900/20"
-          >
-            {isRetaking ? (
-              <><Loader2 className="w-5 h-5 animate-spin" /> Generating Session...</>
-            ) : (
-              <><RotateCcw className="w-5 h-5" /> Retake This Interview</>
-            )}
-          </button>
-        </div>
-
-
-        {/* Top Section: Overall Score & Summary */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className={`p-8 rounded-3xl border flex flex-col items-center justify-center text-center ${cardBg} md:col-span-1`}>
-            <div className="relative mb-4">
-              <svg className="w-32 h-32 transform -rotate-90">
-                <circle cx="64" cy="64" r="56" className={`${isDark ? 'text-zinc-800' : 'text-zinc-200'}`} strokeWidth="12" fill="none" stroke="currentColor" />
-                <circle cx="64" cy="64" r="56" className="text-green-500" strokeWidth="12" fill="none" stroke="currentColor" strokeDasharray={`${(evaluation.overall_score / 10) * 351} 351`} strokeLinecap="round" />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center flex-col">
-                <span className="text-4xl font-bold">{evaluation.overall_score}</span>
-                <span className={`text-xs uppercase tracking-wider font-bold ${secondaryText}`}>Out of 10</span>
-              </div>
-            </div>
-            <h3 className="font-bold text-lg">Overall Performance</h3>
-          </div>
-
-          <div className={`p-8 rounded-3xl border ${cardBg} md:col-span-2 flex flex-col justify-center`}>
-            <h3 className="font-bold text-xl mb-4 flex items-center gap-2">
-              <Award className="w-6 h-6 text-green-500" /> Detailed Explanation
-            </h3>
-            <p className={`leading-relaxed ${secondaryText}`}>
-              {evaluation.detailed_explanation}
-            </p>
-          </div>
-        </div>
-
-        {/* Detailed Metrics */}
-        <div>
-          <h3 className="font-bold text-lg mb-4">Score Breakdown</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <ScoreCard title="Communication" score={evaluation.communication_score} icon={Target} />
-            <ScoreCard title="Technical Depth" score={evaluation.technical_score} icon={Zap} />
-            <ScoreCard title="Problem Solving" score={evaluation.problem_solving_score} icon={TrendingUp} />
-            <ScoreCard title="Confidence" score={evaluation.confidence_score} icon={Award} />
-            <ScoreCard title="Accuracy" score={evaluation.accuracy_score} icon={CheckCircle2} />
-            <ScoreCard title="Completeness" score={evaluation.completeness_score} icon={CheckCircle2} />
-          </div>
-        </div>
-
-        {/* Feedback Grids */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          
-          {/* Strengths */}
-          <div className={`p-6 sm:p-8 rounded-3xl border ${cardBg}`}>
-            <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-green-500">
-              <TrendingUp className="w-5 h-5" /> Key Strengths
-            </h3>
-            <ul className="space-y-3">
-              {feedback?.strengths?.map((item: string, i: number) => (
-                <li key={i} className={`flex items-start gap-3 ${secondaryText}`}>
-                  <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
-                  <span className="text-sm leading-relaxed">{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Weaknesses */}
-          <div className={`p-6 sm:p-8 rounded-3xl border ${cardBg}`}>
-            <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-amber-500">
-              <AlertTriangle className="w-5 h-5" /> Areas for Improvement
-            </h3>
-            <ul className="space-y-3">
-              {feedback?.weaknesses?.map((item: string, i: number) => (
-                <li key={i} className={`flex items-start gap-3 ${secondaryText}`}>
-                  <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-                  <span className="text-sm leading-relaxed">{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        {/* Actionable Advice & Roadmap */}
-        <div className={`p-6 sm:p-8 rounded-3xl border ${cardBg}`}>
-          <h3 className="font-bold text-xl mb-6 flex items-center gap-2">
-            <Map className="w-6 h-6 text-green-500" /> Recommended Roadmap
-          </h3>
-          
-          <div className="space-y-8">
-            <p className={`text-sm leading-relaxed ${secondaryText}`}>
-              {feedback?.recommended_roadmap}
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div>
-                <h4 className="font-bold text-sm uppercase tracking-wider mb-3">Actionable Steps</h4>
-                <ul className="space-y-2">
-                  {feedback?.improvement_suggestions?.map((item: string, i: number) => (
-                    <li key={i} className={`text-sm flex items-start gap-2 ${secondaryText}`}>
-                      <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 mt-1.5 shrink-0" /> {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div>
-                <h4 className="font-bold text-sm uppercase tracking-wider mb-3">Learning Resources</h4>
-                <ul className="space-y-2">
-                  {feedback?.learning_resources?.map((item: string, i: number) => (
-                    <li key={i} className={`text-sm flex items-start gap-2 ${secondaryText}`}>
-                      <BookOpen className="w-4 h-4 text-zinc-400 shrink-0" /> {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-
+        ))}
       </div>
     </div>
   );

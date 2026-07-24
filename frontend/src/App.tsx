@@ -19,9 +19,7 @@ import EditResume from './pages/EditResume';
 import ResumeView from './pages/ResumeView';
 import AttemptQuiz from './pages/AttemptQuiz';
 import AttemptHistory from './pages/AttemptHistory';
-
-// --- New Interview Module Imports ---
-import InterviewDashboard from './pages/InterviewDashboard';
+import Interviews from './pages/Interviews';
 import InterviewSession from './pages/InterviewSession';
 import InterviewFeedback from './pages/InterviewFeedback';
 import RoadmapDetail from './pages/RoadmapDetail';
@@ -43,22 +41,18 @@ function App() {
               <Route element={<Layout />}>
                 <Route path='/dashboard' element={<Dashboard />} />
                 
-                {/* Resumes Module */}
                 <Route path='/resumes' element={<Resumes />} />
                 <Route path="/resumes/edit-resume/:id" element={<EditResume />} />
                 <Route path="/resumes/view/:id" element={<ResumeView />} />
                 
-                {/* Quizzes Module */}
                 <Route path='/quizzes' element={<Quizzes />} />
                 <Route path="/quizzes/:id/attempt" element={<AttemptQuiz />} />
                 <Route path="/quizzes/:id/history" element={<AttemptHistory />} />
                 
-                {/* Interviews Module */}
-                <Route path='/interviews' element={<InterviewDashboard />} />
+                <Route path="/interviews" element={<Interviews />} />
                 <Route path="/interviews/session/:id" element={<InterviewSession />} />
                 <Route path="/interviews/feedback/:id" element={<InterviewFeedback />} />
-                
-                {/* Other Modules */}
+
                 <Route path='/roadmaps' element={<Roadmaps />} />
                 <Route path='/roadmaps/:id' element={<RoadmapDetail />} />
                 <Route path='/internships' element={<Internships />} />

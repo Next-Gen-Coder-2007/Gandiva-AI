@@ -1,107 +1,53 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Float, JSON
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, JSON
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
 from db.database import Base
+from sqlalchemy.sql import func
 
-class InterviewSession(Base):
-    __tablename__ = "interview_sessions"
-
+class Interview(Base):
+    __tablename__ = "interviews"
+    
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    
     role = Column(String, nullable=False)
-    experience = Column(String)
-    difficulty = Column(String)
-    interview_type = Column(String)
-    duration = Column(Integer) 
-    num_questions = Column(Integer)
-    skills = Column(Text) 
-    company = Column(String)
-    resume_text = Column(Text, nullable=True)
-    job_description = Column(Text, nullable=True)
-    status = Column(String, default="pending") # pending, in_progress, completed
+    experience = Column(String, nullable=False)
+    difficulty = Column(String, nullable=False)
+    interview_type = Column(String, nullable=False)
+    company = Column(String, nullable=True)
+    skills = Column(String, nullable=True)
+    
+    num_questions = Column(Integer, default=5, nullable=False)
+    current_question_index = Column(Integer, default=0, nullable=False)
+    status = Column(String, default="in_progress") # in_progress, completed
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now()
-    )
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    
+    # Relationships
+    chat_history = relationship("InterviewMessage", back_populates="interview", cascade="all, delete-orphan", order_by="InterviewMessage.created_at")
+    evaluation = relationship("InterviewEvaluation", back_populates="interview", uselist=False, cascade="all, delete-orphan")
 
-    questions = relationship("InterviewQuestion", back_populates="session", cascade="all, delete-orphan")
-    evaluation = relationship("InterviewEvaluation", back_populates="session", uselist=False, cascade="all, delete-orphan")
-    history = relationship("InterviewHistory", back_populates="session", uselist=False, cascade="all, delete-orphan")
-
-
-class InterviewQuestion(Base):
-    __tablename__ = "interview_questions"
-
+class InterviewMessage(Base):
+    __tablename__ = "interview_messages"
+    
     id = Column(Integer, primary_key=True, index=True)
-    session_id = Column(Integer, ForeignKey("interview_sessions.id"))
-    question_text = Column(Text, nullable=False)
-    category = Column(String) 
-    order_index = Column(Integer)
+    interview_id = Column(Integer, ForeignKey("interviews.id", ondelete="CASCADE"), nullable=False)
+    role = Column(String, nullable=False) # 'ai' or 'user'
+    content = Column(Text, nullable=False)
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    session = relationship("InterviewSession", back_populates="questions")
-    answer = relationship("InterviewAnswer", back_populates="question", uselist=False, cascade="all, delete-orphan")
-
-
-class InterviewAnswer(Base):
-    __tablename__ = "interview_answers"
-
-    id = Column(Integer, primary_key=True, index=True)
-    question_id = Column(Integer, ForeignKey("interview_questions.id"))
-    answer_text = Column(Text, nullable=False)
-    time_taken = Column(Integer) # in seconds
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    question = relationship("InterviewQuestion", back_populates="answer")
-
+    
+    interview = relationship("Interview", back_populates="chat_history")
 
 class InterviewEvaluation(Base):
     __tablename__ = "interview_evaluations"
-
+    
     id = Column(Integer, primary_key=True, index=True)
-    session_id = Column(Integer, ForeignKey("interview_sessions.id"))
-    communication_score = Column(Float)
-    technical_score = Column(Float)
-    confidence_score = Column(Float)
-    problem_solving_score = Column(Float)
-    accuracy_score = Column(Float)
-    grammar_score = Column(Float)
-    completeness_score = Column(Float)
-    overall_score = Column(Float)
-    detailed_explanation = Column(Text)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    session = relationship("InterviewSession", back_populates="evaluation")
-    feedback = relationship("InterviewFeedback", back_populates="evaluation", uselist=False, cascade="all, delete-orphan")
-
-
-class InterviewFeedback(Base):
-    __tablename__ = "interview_feedback"
-
-    id = Column(Integer, primary_key=True, index=True)
-    evaluation_id = Column(Integer, ForeignKey("interview_evaluations.id"))
-    strengths = Column(JSON) 
-    weaknesses = Column(JSON) 
-    improvement_suggestions = Column(JSON)
-    learning_resources = Column(JSON)
-    recommended_roadmap = Column(Text)
-    recommended_quizzes = Column(JSON)
-    recommended_interview = Column(String)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    evaluation = relationship("InterviewEvaluation", back_populates="feedback")
-
-
-class InterviewHistory(Base):
-    __tablename__ = "interview_history"
-
-    id = Column(Integer, primary_key=True, index=True)
-    session_id = Column(Integer, ForeignKey("interview_sessions.id"))
-    user_id = Column(Integer, ForeignKey("users.id"))
-    report_summary = Column(Text)
-    is_deleted = Column(Integer, default=0) # Soft delete flag
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    session = relationship("InterviewSession", back_populates="history")
+    interview_id = Column(Integer, ForeignKey("interviews.id", ondelete="CASCADE"), nullable=False, unique=True)
+    
+    overall_score = Column(Integer, nullable=False)
+    strengths = Column(JSON, nullable=False) # List of strings
+    areas_of_improvement = Column(JSON, nullable=False) # List of strings
+    detailed_feedback = Column(JSON, nullable=False) # List of dicts: {question, user_answer, feedback}
+    
+    interview = relationship("Interview", back_populates="evaluation")
