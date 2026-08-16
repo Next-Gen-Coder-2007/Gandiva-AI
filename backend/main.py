@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from db.database import Base, engine
-from routes import auth, google, contact, resume, quiz, jobs,interview, roadmap
+from routes import auth, google, contact, resume, quiz, jobs, interview, roadmap, analytics
 
 from dotenv import load_dotenv
 
@@ -15,7 +15,10 @@ Base.metadata.create_all(bind=engine)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173"
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:3000"
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -30,3 +33,4 @@ app.include_router(quiz.router)
 app.include_router(interview.router)
 app.include_router(roadmap.router)
 app.include_router(jobs.router)
+app.include_router(analytics.router)
