@@ -139,3 +139,20 @@ export const getResumeAnalysis = async (
 ) => {
   return await api.get(`/resumes/${resumeId}/analysis`);
 };
+
+export interface EnhanceTextPayload {
+  text: string;
+  section_type?: 'bullet' | 'summary' | 'project';
+  role?: string;
+}
+
+export interface EnhancedTextResult {
+  original_text: string;
+  enhanced_text: string;
+  improvement_notes?: string;
+}
+
+export const enhanceResumeText = async (payload: EnhanceTextPayload): Promise<EnhancedTextResult> => {
+  const response = await api.post('/resumes/enhance-text', payload);
+  return response.data;
+};
