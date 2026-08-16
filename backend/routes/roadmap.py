@@ -2,12 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.orm import Session
 from db.database import get_db
 from models.roadmap import Roadmap, RoadmapPhase, RoadmapTask
+from models.resume import Resume as ResumeModel
 from schemas.roadmap import (
     RoadmapGenerateRequest, RoadmapResponse, TaskStatusUpdate
 )
 from services.auth import get_current_user
 from models.user import User
 from services.roadmap import generate_roadmap_with_ai
+from services.resume_analysis import format_resume_to_text
 from typing import List
 
 router = APIRouter(prefix="/roadmaps", tags=["roadmaps"])
@@ -18,12 +20,15 @@ def create_roadmap(
     db: Session = Depends(get_db), 
     current_user: User = Depends(get_current_user)
 ):
-    # Optional: Fetch resume context if you have a Resume model.
-    # resume = db.query(Resume).filter(Resume.user_id == current_user.id).first()
-    # resume_context = resume.parsed_text if resume else ""
-    resume_context = "" # Keeping empty fallback for strict roadmap generation scope
+    # Fetch user's latest resume to detect realistic skill gaps and customize the roadmap
+    resume_context = ""
+    latest_resume = db.query(ResumeModel).filter(ResumeModel.user_id == current_user.id).order_by(ResumeModel.updated_at.desc()).first()
+    if latest_resume:
+        resume_context = format_resume_to_text(latest_resume)
+    elif current_user.target_role or current_user.bio:
+        resume_context = f"Candidate Profile: Target Role: {current_user.target_role or 'N/A'}, College: {current_user.college or 'N/A'}, Branch: {current_user.branch or 'N/A'}, Bio: {current_user.bio or 'N/A'}"
     
-    # 1. Call AI Service
+    # 1. Call AI Service with personalized skill gap context
     ai_roadmap = generate_roadmap_with_ai(target_role=payload.target_role, resume_context=resume_context)
     
     if hasattr(ai_roadmap, "model_dump"):
