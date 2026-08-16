@@ -1,5 +1,20 @@
 import { api } from './api';
 
+export interface UserProfile {
+  id: number;
+  username: string;
+  email: string;
+  full_name?: string;
+  target_role?: string;
+  college?: string;
+  branch?: string;
+  cgpa?: number;
+  year?: string;
+  bio?: string;
+  avatar_url?: string;
+  interview_tone_preference?: string;
+}
+
 export const registerUser = async (
   username: string,
   email: string,
@@ -29,8 +44,18 @@ export const logoutUser = async () => {
   return response.data;
 };
 
-export const getCurrentUser = async () => {
+export const getCurrentUser = async (): Promise<UserProfile> => {
   const response = await api.get("/auth/me");
+  return response.data;
+};
+
+export const getUserProfile = async (): Promise<UserProfile> => {
+  const response = await api.get("/auth/profile");
+  return response.data;
+};
+
+export const updateUserProfile = async (profileData: Partial<UserProfile>): Promise<UserProfile> => {
+  const response = await api.put("/auth/profile", profileData);
   return response.data;
 };
 
