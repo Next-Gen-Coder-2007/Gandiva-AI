@@ -6,9 +6,19 @@ import {
   Clock, ShieldCheck, ChevronRight, PenLine,
   Mic, MicOff, Volume2, VolumeX, Sparkles, Video, VideoOff,
   Code2, Play, Terminal, AlertTriangle,
-  Lightbulb, Layers, Check
+  Lightbulb, Layers, Check, UserCheck
 } from 'lucide-react';
-import { getInterviewDetails, submitAnswer, completeInterview, getInterviewHint } from '../services/interview'; 
+import { 
+  getInterviewDetails, submitAnswer, completeInterview, 
+  getInterviewHint, synthesizeSpeech 
+} from '../services/interview'; 
+
+const PERSONAS = [
+  { id: 'alex', name: 'Alex (Principal Engineer - Male)', title: 'Calm & Technical' },
+  { id: 'sarah', name: 'Sarah (Senior Recruiter - Female)', title: 'Warm & Articulate' },
+  { id: 'david', name: 'David (Bar Raiser - Male)', title: 'Structured & Deep' },
+  { id: 'elena', name: 'Elena (VP Engineering - Female)', title: 'Crisp & Engaging' }
+] as const;
 
 const InterviewSession: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -49,9 +59,13 @@ const InterviewSession: React.FC = () => {
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
 
-  // Speech Synthesis (AI Voice)
+  // Speech Synthesis (Human-like AI Voice)
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isLoadingVoice, setIsLoadingVoice] = useState(false);
   const [autoSpeak, setAutoSpeak] = useState(true);
+  const [voicePersona, setVoicePersona] = useState<'alex' | 'sarah' | 'david' | 'elena'>('alex');
+  const [voiceSpeed, setVoiceSpeed] = useState<number>(1.0);
+  const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
 
   // Hints & Clarifications
   const [hintText, setHintText] = useState<string | null>(null);
@@ -161,6 +175,7 @@ const InterviewSession: React.FC = () => {
       if (audioContextRef.current) {
         audioContextRef.current.close().catch(() => {});
       }
+      stopSpeaking();
     };
   }, []);
 
@@ -272,29 +287,86 @@ const InterviewSession: React.FC = () => {
     }
   };
 
-  const speakText = (text: string) => {
+  // Ultra-realistic Human-like Speech Engine
+  const speakText = async (text: string) => {
+    stopSpeaking();
+    setIsLoadingVoice(true);
+
+    // 1. Try Cartesia Neural Human Voice API
+    try {
+      const audioBlob = await synthesizeSpeech(text, voicePersona);
+      if (audioBlob && audioBlob.size > 100) {
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const audio = new Audio(audioUrl);
+        audio.playbackRate = voiceSpeed;
+        audioPlayerRef.current = audio;
+
+        audio.onplay = () => {
+          setIsSpeaking(true);
+          setIsLoadingVoice(false);
+        };
+        audio.onended = () => {
+          setIsSpeaking(false);
+          URL.revokeObjectURL(audioUrl);
+        };
+        audio.onerror = () => {
+          setIsSpeaking(false);
+          setIsLoadingVoice(false);
+          speakBrowserFallback(text);
+        };
+
+        await audio.play();
+        return;
+      }
+    } catch (err) {
+      console.warn("Cartesia TTS fallback to browser neural voice:", err);
+    }
+
+    // 2. Fallback: Highly Tuned Web Speech Synthesis
+    setIsLoadingVoice(false);
+    speakBrowserFallback(text);
+  };
+
+  const speakBrowserFallback = (text: string) => {
     if (!('speechSynthesis' in window)) return;
-    
     window.speechSynthesis.cancel();
+    
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 1.0;
-    utterance.pitch = 1.0;
+    utterance.rate = voiceSpeed * 0.96;
+    utterance.pitch = voicePersona === 'sarah' || voicePersona === 'elena' ? 1.05 : 0.96;
+    
     utterance.onstart = () => setIsSpeaking(true);
     utterance.onend = () => setIsSpeaking(false);
     utterance.onerror = () => setIsSpeaking(false);
 
     const voices = window.speechSynthesis.getVoices();
-    const englishVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Samantha')));
-    if (englishVoice) utterance.voice = englishVoice;
+    const naturalVoice = voices.find(v => 
+      v.lang.startsWith('en') && (
+        v.name.includes('Natural') || 
+        v.name.includes('Google') || 
+        v.name.includes('Neural') || 
+        v.name.includes('Premium') ||
+        v.name.includes('Samantha') ||
+        v.name.includes('Guy') ||
+        v.name.includes('Jenny')
+      )
+    ) || voices.find(v => v.lang.startsWith('en'));
 
+    if (naturalVoice) utterance.voice = naturalVoice;
     window.speechSynthesis.speak(utterance);
   };
 
   const stopSpeaking = () => {
+    if (audioPlayerRef.current) {
+      audioPlayerRef.current.pause();
+      audioPlayerRef.current.currentTime = 0;
+      audioPlayerRef.current = null;
+    }
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
-      setIsSpeaking(false);
     }
+    setIsSpeaking(false);
+    setIsLoadingVoice(false);
   };
 
   const formatTime = (seconds: number) => {
@@ -347,7 +419,6 @@ const InterviewSession: React.FC = () => {
   };
 
   const handleSubmitAnswer = async () => {
-    // Combine answers based on active tabs
     let finalAnswer = currentAnswer.trim();
     if (workspaceMode === 'star' && (starSituation || starTask || starAction || starResult)) {
       finalAnswer = `[Situation]: ${starSituation}\n[Task]: ${starTask}\n[Action]: ${starAction}\n[Result]: ${starResult}\n\n${finalAnswer}`;
@@ -383,7 +454,7 @@ const InterviewSession: React.FC = () => {
       setStarResult('');
       topRef.current?.scrollIntoView({ behavior: 'smooth' });
 
-      // Auto-speak next question if enabled
+      // Auto-speak next question with natural conversational transition
       if (autoSpeak && updatedSession.chat_history?.length > 0) {
         const lastMsg = updatedSession.chat_history[updatedSession.chat_history.length - 1];
         if (lastMsg.role === 'ai') {
@@ -439,6 +510,10 @@ const InterviewSession: React.FC = () => {
     }
   }
 
+  // Candidate verbal speaking pace / WPM calculation
+  const wordsCount = currentAnswer.trim() ? currentAnswer.trim().split(/\s+/).length : 0;
+  const wpm = timeElapsed > 10 ? Math.round((wordsCount / (timeElapsed / 60))) : 0;
+
   if (loading) {
     return (
       <div className={`min-h-screen flex flex-col items-center justify-center ${bgColor}`}>
@@ -462,7 +537,7 @@ const InterviewSession: React.FC = () => {
             <div className="flex items-center justify-between pb-6 border-b border-zinc-800/80 mb-6">
               <div>
                 <span className="text-[11px] font-black uppercase tracking-wider text-green-500 flex items-center gap-1.5 mb-1">
-                  <ShieldCheck className="w-4 h-4" /> Hardware & Environment Verification
+                  <ShieldCheck className="w-4 h-4" /> Hardware & Voice Engine Verification
                 </span>
                 <h2 className="text-2xl font-black">{session?.role} Assessment</h2>
                 <p className={`text-xs mt-0.5 ${secondaryText}`}>
@@ -505,19 +580,31 @@ const InterviewSession: React.FC = () => {
                 </div>
               </div>
 
-              {/* Hardware checklist */}
+              {/* Hardware & Voice Selection */}
               <div className="space-y-3 text-xs">
-                <div className="flex items-center justify-between p-3 rounded-xl border border-zinc-800 bg-zinc-900/40">
-                  <span className="font-semibold flex items-center gap-2">
-                    <Video className="w-4 h-4 text-emerald-500" /> Video Camera
-                  </span>
-                  <span className="font-bold text-emerald-400">Connected</span>
+                <div>
+                  <label className="font-bold text-zinc-400 uppercase text-[10px] tracking-wider block mb-1">
+                    Interviewer Voice Persona
+                  </label>
+                  <select
+                    value={voicePersona}
+                    onChange={(e) => setVoicePersona(e.target.value as any)}
+                    className={`w-full p-2.5 rounded-xl border text-xs font-bold outline-none ${
+                      isDark ? 'bg-zinc-900 border-zinc-800 text-zinc-200' : 'bg-zinc-100 border-zinc-300 text-zinc-800'
+                    }`}
+                  >
+                    {PERSONAS.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} - {p.title}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="p-3 rounded-xl border border-zinc-800 bg-zinc-900/40 space-y-1.5">
                   <div className="flex items-center justify-between">
                     <span className="font-semibold flex items-center gap-2">
-                      <Mic className="w-4 h-4 text-emerald-500" /> Microphone Input
+                      <Mic className="w-4 h-4 text-emerald-500" /> Microphone Input Check
                     </span>
                     <span className="font-bold text-emerald-400">Active</span>
                   </div>
@@ -532,9 +619,9 @@ const InterviewSession: React.FC = () => {
 
                 <div className="flex items-center justify-between p-3 rounded-xl border border-zinc-800 bg-zinc-900/40">
                   <span className="font-semibold flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-blue-500" /> Proctoring Engine
+                    <Sparkles className="w-4 h-4 text-green-500" /> Human Neural Voice Engine
                   </span>
-                  <span className="font-bold text-blue-400">Ready</span>
+                  <span className="font-bold text-green-400">Sonic HD Active</span>
                 </div>
               </div>
             </div>
@@ -584,22 +671,49 @@ const InterviewSession: React.FC = () => {
                 <span className="font-mono">{formatTime(timeElapsed)}</span>
               </div>
 
-              {/* AI Voice Toggle */}
+              {/* Persona Switcher */}
+              <div className="hidden lg:flex items-center gap-1.5">
+                <UserCheck className="w-3.5 h-3.5 text-zinc-400" />
+                <select
+                  value={voicePersona}
+                  onChange={(e) => setVoicePersona(e.target.value as any)}
+                  className={`px-2 py-1 rounded-lg text-[11px] font-bold border outline-none ${
+                    isDark ? 'bg-zinc-900 border-zinc-800 text-zinc-300' : 'bg-zinc-100 border-zinc-200 text-zinc-700'
+                  }`}
+                  title="Select AI Interviewer Voice Persona"
+                >
+                  <option value="alex">Alex (Male - Principal)</option>
+                  <option value="sarah">Sarah (Female - Recruiter)</option>
+                  <option value="david">David (Male - Bar Raiser)</option>
+                  <option value="elena">Elena (Female - Director)</option>
+                </select>
+              </div>
+
+              {/* AI Voice Toggle & Audio Player */}
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => {
                     if (isSpeaking) stopSpeaking();
                     else speakText(currentQuestionText);
                   }}
+                  disabled={isLoadingVoice}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all ${
                     isSpeaking 
                       ? 'bg-green-500/20 border-green-500 text-green-400 animate-pulse' 
                       : isDark ? 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white' : 'bg-zinc-100 border-zinc-200 text-zinc-600 hover:text-zinc-900'
                   }`}
-                  title={isSpeaking ? 'Mute AI Voice' : 'Play Question Aloud'}
+                  title={isSpeaking ? 'Mute Voice' : 'Play Question with Human Voice'}
                 >
-                  {isSpeaking ? <Volume2 className="w-3.5 h-3.5 text-green-500" /> : <VolumeX className="w-3.5 h-3.5" />}
-                  <span className="hidden sm:inline">{isSpeaking ? 'Speaking...' : 'Voice'}</span>
+                  {isLoadingVoice ? (
+                    <Loader2 className="w-3.5 h-3.5 text-green-500 animate-spin" />
+                  ) : isSpeaking ? (
+                    <Volume2 className="w-3.5 h-3.5 text-green-500" />
+                  ) : (
+                    <VolumeX className="w-3.5 h-3.5" />
+                  )}
+                  <span className="hidden sm:inline">
+                    {isLoadingVoice ? 'Loading Voice...' : isSpeaking ? 'Speaking...' : 'Read Aloud'}
+                  </span>
                 </button>
 
                 <button
@@ -615,10 +729,16 @@ const InterviewSession: React.FC = () => {
                 </button>
               </div>
 
-              {/* Proctored Indicator */}
-              <div className={`hidden sm:flex items-center gap-1.5 text-[10px] font-black px-2.5 py-1 rounded uppercase tracking-wider border ${isDark ? 'bg-green-500/10 border-green-500/20 text-green-500' : 'bg-green-50 border-green-200 text-green-600'}`}>
-                <ShieldCheck className="w-3.5 h-3.5" /> Proctored Live
-              </div>
+              {/* Speed multiplier */}
+              <button
+                onClick={() => setVoiceSpeed(s => s === 1.0 ? 1.15 : s === 1.15 ? 0.85 : 1.0)}
+                className={`hidden md:inline px-2 py-1 rounded-lg text-[10px] font-bold border ${
+                  isDark ? 'bg-zinc-900 border-zinc-800 text-zinc-400' : 'bg-zinc-100 border-zinc-200 text-zinc-600'
+                }`}
+                title="Audio Playback Speed"
+              >
+                {voiceSpeed}x
+              </button>
 
               {/* End Assessment Button */}
               <button 
@@ -657,7 +777,7 @@ const InterviewSession: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-ping" />
                     <span className="text-xs font-black uppercase tracking-wider text-green-500">
-                      AI Lead Interviewer
+                      AI Lead Interviewer ({voicePersona.toUpperCase()})
                     </span>
                   </div>
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-zinc-800 text-zinc-400">
@@ -679,8 +799,25 @@ const InterviewSession: React.FC = () => {
                     </div>
                   </div>
                   
-                  <span className={`text-xs font-bold mt-3 transition-colors ${isSpeaking ? 'text-green-400 animate-pulse' : isSubmitting ? 'text-blue-400 animate-pulse' : secondaryText}`}>
-                    {isSpeaking ? 'Interviewer Speaking...' : isSubmitting ? 'Analyzing Response...' : 'Listening to Candidate'}
+                  {/* Dynamic Frequency Soundwave */}
+                  <div className="flex items-center justify-center gap-1 h-6 mt-3">
+                    {[35, 70, 95, 55, 85, 40, 90, 60, 30].map((h, i) => (
+                      <div
+                        key={i}
+                        className={`w-1 rounded-full transition-all duration-150 ${
+                          isSpeaking ? 'bg-green-400' : 'bg-zinc-700'
+                        }`}
+                        style={{
+                          height: isSpeaking ? `${h}%` : '4px',
+                          animation: isSpeaking ? 'wave 1.2s ease-in-out infinite' : 'none',
+                          animationDelay: `${i * 0.1}s`
+                        }}
+                      />
+                    ))}
+                  </div>
+
+                  <span className={`text-xs font-bold mt-2 transition-colors ${isSpeaking ? 'text-green-400 animate-pulse' : isSubmitting ? 'text-blue-400 animate-pulse' : secondaryText}`}>
+                    {isSpeaking ? 'Interviewer Speaking (Neural Audio)...' : isSubmitting ? 'Analyzing Response...' : 'Listening to Candidate'}
                   </span>
                 </div>
 
@@ -701,9 +838,16 @@ const InterviewSession: React.FC = () => {
                       Candidate Feed (You)
                     </span>
                   </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-zinc-800/80 text-zinc-300">
-                    Latency: 22ms
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {wpm > 0 && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        {wpm} WPM Pace
+                      </span>
+                    )}
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-zinc-800/80 text-zinc-300">
+                      Latency: 22ms
+                    </span>
+                  </div>
                 </div>
 
                 {/* Candidate Video */}
@@ -801,12 +945,19 @@ const InterviewSession: React.FC = () => {
 
                   <button
                     onClick={() => isSpeaking ? stopSpeaking() : speakText(currentQuestionText)}
+                    disabled={isLoadingVoice}
                     className={`p-2 rounded-xl border transition-all ${
                       isSpeaking ? 'bg-green-500/20 border-green-500 text-green-400 animate-pulse' : isDark ? 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white' : 'bg-zinc-100 border-zinc-200 text-zinc-600'
                     }`}
                     title={isSpeaking ? 'Stop Audio' : 'Play Audio'}
                   >
-                    {isSpeaking ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+                    {isLoadingVoice ? (
+                      <Loader2 className="w-4 h-4 text-green-500 animate-spin" />
+                    ) : isSpeaking ? (
+                      <Volume2 className="w-4 h-4" />
+                    ) : (
+                      <VolumeX className="w-4 h-4" />
+                    )}
                   </button>
                 </div>
               </div>

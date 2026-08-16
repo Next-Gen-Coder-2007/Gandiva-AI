@@ -24,6 +24,10 @@ class HintRequest(BaseModel):
 class HintResponse(BaseModel):
     hint: str
 
+class TTSRequest(BaseModel):
+    text: str
+    voice_persona: Optional[str] = "alex"
+
 # --- AI Generation Schemas (For Gemini Structured Outputs) ---
 
 class AIGeneratedQuestion(BaseModel):

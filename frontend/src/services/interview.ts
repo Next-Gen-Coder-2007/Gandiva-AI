@@ -93,3 +93,10 @@ export const completeInterview = async (id: string | number): Promise<InterviewS
   const response = await api.post(`/interviews/${id}/complete`);
   return response.data;
 };
+
+export const synthesizeSpeech = async (text: string, voice_persona: string = 'alex'): Promise<Blob> => {
+  const response = await api.post(`/interviews/tts`, { text, voice_persona }, {
+    responseType: 'blob'
+  });
+  return response.data;
+};

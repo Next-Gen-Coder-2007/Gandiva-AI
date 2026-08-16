@@ -9,7 +9,7 @@ from services.auth import get_current_user
 
 from schemas.interview import (
     InterviewCreate, InterviewResponse, AnswerSubmit, 
-    HintRequest, HintResponse
+    HintRequest, HintResponse, TTSRequest
 )
 from models.interview import Interview, InterviewMessage, InterviewEvaluation
 from services.interview import (
@@ -17,6 +17,7 @@ from services.interview import (
     generate_interview_evaluation,
     generate_interview_hint
 )
+from services.speech import synthesize_speech_cartesia
 
 router = APIRouter(prefix="/interviews", tags=["interviews"])
 
@@ -71,6 +72,16 @@ def get_interview_hint(
     last_ai_msg = next((m.content for m in reversed(interview.chat_history) if m.role == "ai"), "Current technical question")
     hint_text = generate_interview_hint(interview, last_ai_msg, payload.user_query or "")
     return HintResponse(hint=hint_text)
+
+@router.post("/tts")
+def generate_speech(payload: TTSRequest, current_user: User = Depends(get_current_user)):
+    audio_bytes = synthesize_speech_cartesia(payload.text, payload.voice_persona or "alex")
+    if not audio_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, 
+            detail="Neural TTS temporarily unavailable, fallback to browser synthesis."
+        )
+    return Response(content=audio_bytes, media_type="audio/wav")
 
 @router.post("/{interview_id}/answers", response_model=InterviewResponse)
 def submit_answer(interview_id: int, payload: AnswerSubmit, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
