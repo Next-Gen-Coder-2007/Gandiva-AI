@@ -6,10 +6,14 @@ from sqlalchemy.orm import Session, selectinload
 from typing import List
 from db.database import get_db
 from models.resume import Resume as ResumeModel, Skill, Language, Education, Experience, Project, Achievement, Certificate
-from schemas.resume import PersonalInfoSchema, Resume, ResumeCreate, ThemeSchema, SkillSchema, LanguageSchema, EducationSchema, ExperienceSchema, ProjectSchema, AchievementSchema, CertificateSchema
+from schemas.resume import (
+    PersonalInfoSchema, Resume, ResumeCreate, ThemeSchema, SkillSchema, 
+    LanguageSchema, EducationSchema, ExperienceSchema, ProjectSchema, 
+    AchievementSchema, CertificateSchema, EnhanceTextRequest, EnhancedTextResponse
+)
 from schemas.resume_analysis import AnalyzeResumeRequest, ResumeAnalysisResponseDB
 from services.auth import get_current_user
-from services.resume import extract_data_with_gemini
+from services.resume import extract_data_with_gemini, enhance_resume_text_with_gemini
 from services.resume_analysis import process_and_save_analysis, get_latest_analysis
 from models.user import User
 
@@ -195,3 +199,16 @@ def get_resume_analysis_endpoint(resume_id: int,db: Session = Depends(get_db),cu
     if not analysis:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No analysis found for this resume.")
     return analysis
+
+@router.post("/enhance-text", response_model=EnhancedTextResponse)
+def enhance_text_endpoint(
+    payload: EnhanceTextRequest,
+    current_user: User = Depends(get_current_user)
+):
+    if not payload.text.strip():
+        raise HTTPException(status_code=400, detail="Text cannot be empty")
+    return enhance_resume_text_with_gemini(
+        text=payload.text,
+        section_type=payload.section_type,
+        role=payload.role or current_user.target_role
+    )
