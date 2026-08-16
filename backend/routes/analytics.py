@@ -106,7 +106,7 @@ def get_dashboard_analytics(
             if not latest_analysis and all_analyses:
                 latest_analysis = all_analyses[0]
     
-    quiz_attempts = db.query(QuizAttempt).filter(QuizAttempt.user_id == current_user.id).order_by(QuizAttempt.created_at.desc()).all()
+    quiz_attempts = db.query(QuizAttempt).filter(QuizAttempt.user_id == current_user.id).order_by(QuizAttempt.started_at.desc()).all()
     quizzes = db.query(Quiz).options(selectinload(Quiz.questions)).filter(Quiz.user_id == current_user.id).all()
     quiz_map = {q.id: q for q in quizzes}
     
@@ -123,7 +123,6 @@ def get_dashboard_analytics(
     if latest_analysis and latest_analysis.ats_score:
         resume_ats = latest_analysis.ats_score
     elif latest_resume:
-        # Calculate completeness
         score = 40
         if latest_resume.skills: score += 15
         if latest_resume.projects: score += 15
@@ -303,14 +302,15 @@ def get_dashboard_analytics(
     for attempt in quiz_attempts[:5]:
         quiz_item = quiz_map.get(attempt.quiz_id)
         title = quiz_item.title if quiz_item else "Skill Assessment Quiz"
-        date_str = attempt.created_at.isoformat() if attempt.created_at else None
+        attempt_time = attempt.completed_at or attempt.started_at
+        date_str = attempt_time.isoformat() if attempt_time else None
         activity_list.append({
-            "raw_time": attempt.created_at,
+            "raw_time": attempt_time,
             "item": RecentActivityItem(
                 id=f"quiz_{attempt.id}",
                 type="quiz",
                 title=f"Completed Quiz: {title}",
-                description=f"Scored {attempt.score} points on {quiz_item.category if quiz_item else 'General'} assessment.",
+                description=f"Scored {attempt.score} points on {quiz_item.difficulty if quiz_item else 'General'} assessment.",
                 timestamp=date_str,
                 score=f"{attempt.score} pts",
                 status="completed",
@@ -342,13 +342,14 @@ def get_dashboard_analytics(
         matching_res = next((r for r in resumes if r.id == ana.resume_id), None)
         res_title = matching_res.title if matching_res else "Resume Scan"
         date_str = ana.created_at.isoformat() if ana.created_at else None
+        target_title = ana.target_job_title or "General Role"
         activity_list.append({
             "raw_time": ana.created_at,
             "item": RecentActivityItem(
                 id=f"resume_{ana.id}",
                 type="resume",
                 title=f"ATS Scan: {res_title}",
-                description=f"Target role match: {ana.target_role or 'General'}. ATS Score: {ana.ats_score or 0}/100.",
+                description=f"Target role: {target_title}. ATS Score: {ana.ats_score or 0}/100.",
                 timestamp=date_str,
                 score=f"{ana.ats_score}/100 ATS" if ana.ats_score else "Analyzed",
                 status="analyzed",
@@ -365,7 +366,7 @@ def get_dashboard_analytics(
                 id=f"roadmap_{rm.id}",
                 type="roadmap",
                 title=f"Career Track: {rm.target_role}",
-                description=f"Level: {rm.experience_level} • {len(rm.phases)} phases outlined.",
+                description=f"{len(rm.phases)} structured phases outlined.",
                 timestamp=date_str,
                 score=f"{len(rm.phases)} phases",
                 status="in_progress",
@@ -382,7 +383,7 @@ def get_dashboard_analytics(
 
     # 12. Weekly Goals Calculation
     one_week_ago = datetime.now(timezone.utc) - timedelta(days=7)
-    recent_attempts_count = sum(1 for q in quiz_attempts if q.created_at and (q.created_at.tzinfo is not None and q.created_at >= one_week_ago or q.created_at.tzinfo is None and q.created_at >= one_week_ago.replace(tzinfo=None)))
+    recent_attempts_count = sum(1 for q in quiz_attempts if q.started_at and (q.started_at.tzinfo is not None and q.started_at >= one_week_ago or q.started_at.tzinfo is None and q.started_at >= one_week_ago.replace(tzinfo=None)))
     recent_interviews_count = sum(1 for i in completed_interviews if i.created_at and (i.created_at.tzinfo is not None and i.created_at >= one_week_ago or i.created_at.tzinfo is None and i.created_at >= one_week_ago.replace(tzinfo=None)))
     
     # Fallback to total if newer
@@ -445,9 +446,9 @@ def get_dashboard_analytics(
     matched_internships: List[MatchedInternship] = []
     
     try:
-        adzuna_results = search_jobs_service(search_query, None, "India", 1)
-        if adzuna_results and adzuna_results.get("results"):
-            for idx, job in enumerate(adzuna_results.get("results", [])[:4]):
+        search_results = search_jobs_service(search_query, "", "India", "All", "All", 1, 4)
+        if search_results and search_results.get("results"):
+            for idx, job in enumerate(search_results.get("results", [])[:4]):
                 salary_text = f"₹{int(job.get('salary_min', 40000)):,}/mo" if job.get('salary_min') else "Competitive"
                 match_val = 94 - (idx * 4)
                 matched_internships.append(MatchedInternship(
@@ -460,9 +461,9 @@ def get_dashboard_analytics(
                     redirect_url=job.get("redirect_url", "#")
                 ))
     except Exception as e:
-        print(f"Adzuna search failed in dashboard: {e}")
+        print(f"Job search failed in dashboard: {e}")
 
-    # Fallback internships if Adzuna returned none
+    # Fallback internships if search returned none
     if not matched_internships:
         matched_internships = [
             MatchedInternship(
