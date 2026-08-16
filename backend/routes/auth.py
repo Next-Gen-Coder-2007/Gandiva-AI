@@ -4,7 +4,10 @@ from sqlalchemy.orm import Session
 import os, httpx
 from db.database import get_db
 from models.user import User
-from schemas.auth import ChangePasswordSchema, RegisterSchema, LoginSchema, ForgotPasswordSchema, VerifyOtpSchema, ResetPasswordSchema
+from schemas.auth import (
+    ChangePasswordSchema, RegisterSchema, LoginSchema, ForgotPasswordSchema, 
+    VerifyOtpSchema, ResetPasswordSchema, UserProfileUpdate, UserProfileResponse
+)
 from services.auth import (
     hash_password,
     register_local_user, 
@@ -52,13 +55,26 @@ def logout(response: Response):
     response.delete_cookie(key="access_token", samesite="lax", secure=False)
     return {"message": "Logged out successfully"}
 
-@router.get("/me")
+@router.get("/me", response_model=UserProfileResponse)
 def get_user_details(current_user: User = Depends(get_current_user)):
-    return {
-        "id": current_user.id,
-        "username": current_user.username,
-        "email": current_user.email
-    }
+    return current_user
+
+@router.get("/profile", response_model=UserProfileResponse)
+def get_profile(current_user: User = Depends(get_current_user)):
+    return current_user
+
+@router.put("/profile", response_model=UserProfileResponse)
+def update_profile(
+    profile_data: UserProfileUpdate, 
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    for field, value in profile_data.model_dump(exclude_unset=True).items():
+        setattr(current_user, field, value)
+    
+    db.commit()
+    db.refresh(current_user)
+    return current_user
 
 @router.post("/forgot-password")
 async def forgot_password(payload: ForgotPasswordSchema, db: Session = Depends(get_db)):
