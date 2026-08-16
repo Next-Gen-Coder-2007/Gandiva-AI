@@ -162,3 +162,13 @@ class ParsedResumeData(BaseModel):
 
     class Config:
         from_attributes = True
+
+class EnhanceTextRequest(BaseModel):
+    text: str
+    section_type: str = "bullet"  # 'bullet', 'summary', 'project'
+    role: Optional[str] = None
+
+class EnhancedTextResponse(BaseModel):
+    original_text: str
+    enhanced_text: str
+    improvement_notes: Optional[str] = None
