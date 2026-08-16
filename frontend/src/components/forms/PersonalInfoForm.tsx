@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../context/ThemeContext';
-import { Loader2 } from 'lucide-react'; // Imported Loader2 for the spinner
-import { updateResumePersonalInfo } from '../../services/resume';
+import { Loader2, Sparkles } from 'lucide-react';
+import { updateResumePersonalInfo, enhanceResumeText } from '../../services/resume';
 
 interface PersonalInfo {
   full_name: string;
@@ -39,6 +39,7 @@ const PersonalInfoForm: React.FC<Props> = ({ id, data, onUpdate }) => {
   });
 
   const [isSaving, setIsSaving] = useState(false);
+  const [isEnhancing, setIsEnhancing] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -101,10 +102,36 @@ const PersonalInfoForm: React.FC<Props> = ({ id, data, onUpdate }) => {
       </div>
 
       <div>
-        <label className={labelClass}>Profile summary</label>
+        <div className="flex items-center justify-between mb-2">
+          <label className={labelClass.replace('mb-2', '')}>Profile Summary</label>
+          <button
+            type="button"
+            onClick={async () => {
+              if (!formData.profile_summary?.trim()) return;
+              setIsEnhancing(true);
+              try {
+                const res = await enhanceResumeText({ text: formData.profile_summary, section_type: 'summary' });
+                if (res.enhanced_text) {
+                  const updated = { ...formData, profile_summary: res.enhanced_text };
+                  setFormData(updated);
+                  onUpdate(updated);
+                }
+              } catch (err) {
+                console.error("AI enhancement error:", err);
+              } finally {
+                setIsEnhancing(false);
+              }
+            }}
+            disabled={isEnhancing || !formData.profile_summary?.trim()}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20 border border-purple-500/20 transition-all disabled:opacity-40"
+          >
+            {isEnhancing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+            {isEnhancing ? 'Enhancing...' : 'Enhance with AI'}
+          </button>
+        </div>
         <textarea 
           name="profile_summary"
-          placeholder="Briefly describe your professional background..."
+          placeholder="Briefly describe your professional background, core technical skills, and career objective..."
           value={formData.profile_summary || ""}
           onChange={handleChange}
           className={`${inputClass} h-32 resize-none`} 
