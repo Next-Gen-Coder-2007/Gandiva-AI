@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../context/ThemeContext';
-import { Plus, Trash2, Loader2 } from 'lucide-react'; // Added Loader2 for a loading spinner
-import { updateResumeProjects } from '../../services/resume';
+import { Plus, Trash2, Loader2, Sparkles } from 'lucide-react';
+import { updateResumeProjects, enhanceResumeText } from '../../services/resume';
 
 interface Project {
   title: string;
@@ -26,6 +26,7 @@ const ProjectsForm: React.FC<Props> = ({ id, data, onUpdate }) => {
   });
 
   const [isSaving, setIsSaving] = useState(false);
+  const [isEnhancing, setIsEnhancing] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   const addProject = () => {
@@ -87,8 +88,32 @@ const ProjectsForm: React.FC<Props> = ({ id, data, onUpdate }) => {
           <input className={inputClass} value={current.live_demo} onChange={(e) => setCurrent({...current, live_demo: e.target.value})} placeholder="Live Demo URL" />
         </div>
         <div>
-          <label className={labelClass}>Description</label>
-          <textarea className={`${inputClass} h-24`} value={current.description} onChange={(e) => setCurrent({...current, description: e.target.value})} placeholder="What did you build? How did you build it?" />
+          <div className="flex items-center justify-between mb-2">
+            <label className={labelClass.replace('mb-2', '')}>Description / Impact</label>
+            <button
+              type="button"
+              onClick={async () => {
+                if (!current.description.trim()) return;
+                setIsEnhancing(true);
+                try {
+                  const res = await enhanceResumeText({ text: current.description, section_type: 'project', role: current.title });
+                  if (res.enhanced_text) {
+                    setCurrent(prev => ({ ...prev, description: res.enhanced_text }));
+                  }
+                } catch (err) {
+                  console.error("AI enhancement error:", err);
+                } finally {
+                  setIsEnhancing(false);
+                }
+              }}
+              disabled={isEnhancing || !current.description.trim()}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20 border border-purple-500/20 transition-all disabled:opacity-40"
+            >
+              {isEnhancing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+              {isEnhancing ? 'Enhancing...' : 'Enhance with AI'}
+            </button>
+          </div>
+          <textarea className={`${inputClass} h-24`} value={current.description} onChange={(e) => setCurrent({...current, description: e.target.value})} placeholder="What did you build? What was the outcome or metric achieved?" />
         </div>
         <button 
           onClick={addProject} 

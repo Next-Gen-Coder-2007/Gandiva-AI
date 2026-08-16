@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../context/ThemeContext';
-import { Plus, Trash2, Loader2 } from 'lucide-react'; // Added Loader2
-import { updateResumeExperiences } from '../../services/resume';
+import { Plus, Trash2, Loader2, Sparkles } from 'lucide-react';
+import { updateResumeExperiences, enhanceResumeText } from '../../services/resume';
 
 interface Experience {
   company: string;
@@ -28,6 +28,7 @@ const ExperiencesForm: React.FC<Props> = ({ id, data, onUpdate }) => {
   });
 
   const [isSaving, setIsSaving] = useState(false);
+  const [isEnhancing, setIsEnhancing] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   const handleInputChange = (field: keyof Experience, value: any) => {
@@ -121,8 +122,32 @@ const ExperiencesForm: React.FC<Props> = ({ id, data, onUpdate }) => {
       </div>
 
       <div>
-        <label className={labelClass}>Description</label>
-        <textarea className={`${inputClass} h-24`} value={current.description} onChange={(e) => handleInputChange('description', e.target.value)} placeholder="Key responsibilities..." />
+        <div className="flex items-center justify-between mb-2">
+          <label className={labelClass.replace('mb-2', '')}>Description / Bullet Points</label>
+          <button
+            type="button"
+            onClick={async () => {
+              if (!current.description.trim()) return;
+              setIsEnhancing(true);
+              try {
+                const res = await enhanceResumeText({ text: current.description, section_type: 'bullet', role: current.role });
+                if (res.enhanced_text) {
+                  handleInputChange('description', res.enhanced_text);
+                }
+              } catch (err) {
+                console.error("AI enhancement error:", err);
+              } finally {
+                setIsEnhancing(false);
+              }
+            }}
+            disabled={isEnhancing || !current.description.trim()}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20 border border-purple-500/20 transition-all disabled:opacity-40"
+          >
+            {isEnhancing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+            {isEnhancing ? 'Optimizing...' : 'Enhance with AI'}
+          </button>
+        </div>
+        <textarea className={`${inputClass} h-24`} value={current.description} onChange={(e) => handleInputChange('description', e.target.value)} placeholder="Key responsibilities, achievements, technologies used (XYZ formula)..." />
       </div>
 
       <button 
