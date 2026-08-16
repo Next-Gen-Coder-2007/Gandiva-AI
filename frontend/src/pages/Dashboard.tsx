@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   Trophy, FileCheck, Brain, Target, AlertCircle, ArrowRight, 
   Briefcase, Sparkles, RefreshCw, Loader2, CheckCircle2, 
-  MapPin, ExternalLink, Activity, Info
+  MapPin, ExternalLink, Activity, Info, Flame, TrendingUp,
+  Sliders, X, ChevronRight
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -19,6 +20,17 @@ const Dashboard: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showFormula, setShowFormula] = useState(false);
+  
+  // Simulator State
+  const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
+  const [simAts, setSimAts] = useState<number>(75);
+  const [simQuiz, setSimQuiz] = useState<number>(70);
+  const [simInterview, setSimInterview] = useState<number>(65);
+  const [simProjects, setSimProjects] = useState<number>(60);
+  const [simSkills, setSimSkills] = useState<number>(70);
+
+  // Activity Feed Filter
+  const [activityFilter, setActivityFilter] = useState<'all' | 'quiz' | 'interview' | 'resume' | 'roadmap'>('all');
 
   const fetchAnalytics = async (isManual = false) => {
     if (isManual) setRefreshing(true);
@@ -27,6 +39,15 @@ const Dashboard: React.FC = () => {
     try {
       const analyticsData = await getDashboardAnalytics();
       setData(analyticsData);
+      
+      // Initialize simulator with real values
+      if (analyticsData.score_breakdown) {
+        setSimAts(analyticsData.score_breakdown.resume_ats || 60);
+        setSimQuiz(analyticsData.score_breakdown.quiz_score || 50);
+        setSimInterview(analyticsData.score_breakdown.interview_score || 50);
+        setSimProjects(analyticsData.score_breakdown.project_score || 40);
+        setSimSkills(analyticsData.score_breakdown.skill_score || 50);
+      }
     } catch (err: any) {
       console.error("Dashboard error:", err);
       setError("Unable to load latest analytics. Please try refreshing.");
@@ -61,11 +82,21 @@ const Dashboard: React.FC = () => {
   };
 
   const getScoreGrade = (score: number) => {
-    if (score >= 85) return { grade: 'Ready for Top Tech Tier 1', color: 'text-emerald-500', bg: 'bg-emerald-500/10' };
-    if (score >= 70) return { grade: 'Placement Ready', color: 'text-green-500', bg: 'bg-green-500/10' };
-    if (score >= 50) return { grade: 'Intermediate Progress', color: 'text-amber-500', bg: 'bg-amber-500/10' };
-    return { grade: 'Foundation Phase', color: 'text-rose-500', bg: 'bg-rose-500/10' };
+    if (score >= 85) return { grade: 'Ready for Top Tech Tier 1', color: 'text-emerald-500', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30' };
+    if (score >= 70) return { grade: 'Placement Ready', color: 'text-green-500', bg: 'bg-green-500/10', border: 'border-green-500/30' };
+    if (score >= 50) return { grade: 'Intermediate Progress', color: 'text-amber-500', bg: 'bg-amber-500/10', border: 'border-amber-500/30' };
+    return { grade: 'Foundation Phase', color: 'text-rose-500', bg: 'bg-rose-500/10', border: 'border-rose-500/30' };
   };
+
+  // Simulated Score calculation: 30% ATS + 25% Quiz + 20% Interview + 15% Project + 10% Skills
+  const simulatedTotal = Math.round(
+    (0.30 * simAts) + 
+    (0.25 * simQuiz) + 
+    (0.20 * simInterview) + 
+    (0.15 * simProjects) + 
+    (0.10 * simSkills)
+  );
+  const simGrade = getScoreGrade(simulatedTotal);
 
   if (loading) {
     return (
@@ -82,6 +113,21 @@ const Dashboard: React.FC = () => {
 
   const scoreInfo = getScoreGrade(data?.placement_readiness_score || 0);
 
+  const filteredActivities = (data?.recent_activity || []).filter(item => {
+    if (activityFilter === 'all') return true;
+    return item.type === activityFilter;
+  });
+
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'quiz': return Brain;
+      case 'interview': return Target;
+      case 'resume': return FileCheck;
+      case 'roadmap': return Activity;
+      default: return Sparkles;
+    }
+  };
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-8 font-sans">
       
@@ -97,11 +143,29 @@ const Dashboard: React.FC = () => {
             </span>
           </div>
           <p className={`mt-1.5 text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
-            {user?.target_role ? `Targeting: ${user.target_role}` : 'Your unified career readiness and intelligence cockpit.'}
+            {user?.target_role ? (
+              <span className="flex items-center gap-2">
+                Targeting: <strong className="text-green-500 font-semibold">{user.target_role}</strong>
+              </span>
+            ) : (
+              'Your unified career readiness and intelligence cockpit.'
+            )}
           </p>
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsSimulatorOpen(true)}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-bold transition-all ${
+              isDark 
+                ? 'bg-zinc-900/80 border-green-500/30 text-green-400 hover:bg-zinc-800' 
+                : 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100'
+            }`}
+          >
+            <Sliders className="w-3.5 h-3.5" />
+            <span>Simulate Score</span>
+          </button>
+
           <button
             onClick={() => fetchAnalytics(true)}
             disabled={refreshing}
@@ -110,7 +174,7 @@ const Dashboard: React.FC = () => {
             }`}
           >
             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-green-500' : ''}`} />
-            {refreshing ? 'Syncing...' : 'Refresh Metrics'}
+            {refreshing ? 'Syncing...' : 'Refresh'}
           </button>
           
           <Link
@@ -227,6 +291,86 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* WEEKLY GOALS & MOMENTUM STREAK WIDGET */}
+      {data?.weekly_goals && (
+        <div className={`p-6 rounded-3xl border ${isDark ? 'bg-zinc-950/60 border-zinc-800' : 'bg-white border-zinc-200 shadow-sm'}`}>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                <Flame className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base flex items-center gap-2">
+                  Weekly Momentum & Streak
+                  <span className="px-2 py-0.5 rounded-full text-xs font-extrabold bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                    {data.weekly_goals.current_streak_days} Day Streak 🔥
+                  </span>
+                </h3>
+                <p className={`text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                  Stay consistent this week to accelerate your placement readiness score.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Quizzes Target */}
+            <div className={`p-4 rounded-2xl border ${isDark ? 'bg-zinc-900/30 border-zinc-800' : 'bg-zinc-50 border-zinc-200'}`}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+                  <Brain className="w-3.5 h-3.5 text-blue-500" /> Quizzes
+                </span>
+                <span className="text-xs font-black text-blue-500">
+                  {data.weekly_goals.quizzes_completed} / {data.weekly_goals.quizzes_target}
+                </span>
+              </div>
+              <div className={`w-full h-2 rounded-full overflow-hidden ${isDark ? 'bg-zinc-800' : 'bg-zinc-200'}`}>
+                <div 
+                  className="h-full bg-blue-500 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min((data.weekly_goals.quizzes_completed / data.weekly_goals.quizzes_target) * 100, 100)}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Interviews Target */}
+            <div className={`p-4 rounded-2xl border ${isDark ? 'bg-zinc-900/30 border-zinc-800' : 'bg-zinc-50 border-zinc-200'}`}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+                  <Target className="w-3.5 h-3.5 text-purple-500" /> Mock Sessions
+                </span>
+                <span className="text-xs font-black text-purple-500">
+                  {data.weekly_goals.interviews_completed} / {data.weekly_goals.interviews_target}
+                </span>
+              </div>
+              <div className={`w-full h-2 rounded-full overflow-hidden ${isDark ? 'bg-zinc-800' : 'bg-zinc-200'}`}>
+                <div 
+                  className="h-full bg-purple-500 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min((data.weekly_goals.interviews_completed / data.weekly_goals.interviews_target) * 100, 100)}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Roadmap Tasks Target */}
+            <div className={`p-4 rounded-2xl border ${isDark ? 'bg-zinc-900/30 border-zinc-800' : 'bg-zinc-50 border-zinc-200'}`}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Roadmap Tasks
+                </span>
+                <span className="text-xs font-black text-emerald-500">
+                  {data.weekly_goals.tasks_completed} / {data.weekly_goals.tasks_target}
+                </span>
+              </div>
+              <div className={`w-full h-2 rounded-full overflow-hidden ${isDark ? 'bg-zinc-800' : 'bg-zinc-200'}`}>
+                <div 
+                  className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min((data.weekly_goals.tasks_completed / data.weekly_goals.tasks_target) * 100, 100)}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* CORE 4 METRICS CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {data?.metrics.map((m, i) => {
@@ -254,7 +398,7 @@ const Dashboard: React.FC = () => {
       {/* 2-COLUMN MAIN CONTENT */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
-        {/* LEFT COLUMN: RECOMMENDED AI ACTIONS & WEAK SKILLS */}
+        {/* LEFT COLUMN: RECOMMENDED AI ACTIONS & RECENT ACTIVITY */}
         <div className="lg:col-span-7 space-y-6">
           
           {/* Action Recommendations */}
@@ -306,6 +450,90 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
 
+          {/* RECENT ACTIVITY TIMELINE */}
+          <div className={`p-6 sm:p-8 rounded-3xl border shadow-sm ${isDark ? 'bg-zinc-950/60 border-zinc-800' : 'bg-white border-zinc-200'}`}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+              <div>
+                <h2 className="text-lg font-bold tracking-tight flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-emerald-500" /> Recent Learning Activity
+                </h2>
+                <p className={`text-xs mt-0.5 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                  Your latest attempts, mock sessions, and verified milestones.
+                </p>
+              </div>
+
+              {/* Filter Tabs */}
+              <div className="flex items-center gap-1 p-1 rounded-xl border border-zinc-800 bg-zinc-900/50 text-xs font-semibold">
+                {(['all', 'quiz', 'interview', 'resume'] as const).map(tab => (
+                  <button
+                    key={tab}
+                    onClick={() => setActivityFilter(tab)}
+                    className={`px-2.5 py-1 rounded-lg capitalize transition-colors ${
+                      activityFilter === tab 
+                        ? 'bg-green-600 text-white font-bold' 
+                        : isDark ? 'text-zinc-400 hover:text-white' : 'text-zinc-600 hover:text-zinc-900'
+                    }`}
+                  >
+                    {tab === 'all' ? 'All' : tab}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {filteredActivities.length === 0 ? (
+              <div className={`text-center py-8 border border-dashed rounded-2xl ${isDark ? 'border-zinc-800 text-zinc-500' : 'border-zinc-200 text-zinc-400'}`}>
+                <Sparkles className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p className="text-xs font-semibold">No recent activities in this category yet.</p>
+                <p className="text-[11px] mt-1">Start a quiz or mock interview to populate your timeline.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredActivities.map((act) => {
+                  const Icon = getActivityIcon(act.type);
+                  return (
+                    <div
+                      key={act.id}
+                      onClick={() => navigate(act.link)}
+                      className={`group p-4 rounded-2xl border cursor-pointer transition-all flex items-start sm:items-center justify-between gap-4 ${
+                        isDark 
+                          ? 'bg-zinc-900/30 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/60' 
+                          : 'bg-zinc-50/60 border-zinc-200 hover:border-zinc-300 hover:bg-white'
+                      }`}
+                    >
+                      <div className="flex items-start sm:items-center gap-3">
+                        <div className={`p-2.5 rounded-xl shrink-0 mt-0.5 sm:mt-0 ${
+                          act.type === 'quiz' ? 'bg-blue-500/10 text-blue-500' :
+                          act.type === 'interview' ? 'bg-purple-500/10 text-purple-500' :
+                          act.type === 'resume' ? 'bg-emerald-500/10 text-emerald-500' :
+                          'bg-teal-500/10 text-teal-500'
+                        }`}>
+                          <Icon className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-sm group-hover:text-green-500 transition-colors">
+                            {act.title}
+                          </h4>
+                          <p className={`text-xs mt-0.5 line-clamp-1 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                            {act.description}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="shrink-0 flex flex-col sm:flex-row sm:items-center gap-2 text-right">
+                        {act.score && (
+                          <span className="px-2 py-0.5 text-[11px] font-extrabold rounded-md bg-green-500/10 text-green-500 border border-green-500/20">
+                            {act.score}
+                          </span>
+                        )}
+                        <ChevronRight className="w-4 h-4 text-zinc-500 group-hover:text-green-500 group-hover:translate-x-0.5 transition-all hidden sm:inline" />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           {/* Quick Hub Navigation */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <Link to="/resumes" className={`p-4 rounded-2xl border text-center transition-all hover:scale-[1.02] ${isDark ? 'bg-zinc-950/60 border-zinc-800 hover:border-emerald-500/40' : 'bg-white border-zinc-200 hover:border-emerald-500/40 shadow-sm'}`}>
@@ -332,9 +560,58 @@ const Dashboard: React.FC = () => {
 
         </div>
 
-        {/* RIGHT COLUMN: DETECTED SKILL GAPS & MATCHED INTERNSHIPS */}
+        {/* RIGHT COLUMN: MARKET INSIGHTS, SKILL GAPS & MATCHED INTERNSHIPS */}
         <div className="lg:col-span-5 space-y-6">
           
+          {/* Target Role Market & Salary Insights Card */}
+          {data?.role_insights && (
+            <div className={`p-6 sm:p-7 rounded-3xl border shadow-sm ${isDark ? 'bg-zinc-950/60 border-zinc-800' : 'bg-white border-zinc-200'}`}>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-base font-bold flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-green-500" /> Market & Salary Intelligence
+                </h2>
+                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-green-500/10 text-green-500 border border-green-500/20">
+                  {data.role_insights.demand_level}
+                </span>
+              </div>
+              
+              <div className="mb-4">
+                <h3 className="font-extrabold text-sm text-zinc-300">
+                  {data.role_insights.target_role}
+                </h3>
+                <div className="flex items-center gap-4 mt-2">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-zinc-500 block">Package Range</span>
+                    <span className="text-sm font-black text-emerald-400">{data.role_insights.salary_range}</span>
+                  </div>
+                  <div className={`h-8 w-px ${isDark ? 'bg-zinc-800' : 'bg-zinc-200'}`} />
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-zinc-500 block">Hiring Growth</span>
+                    <span className="text-sm font-black text-green-500">{data.role_insights.market_growth}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 block mb-2">
+                  In-Demand Competencies
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {data.role_insights.top_trending_skills.map((skill, idx) => (
+                    <span
+                      key={idx}
+                      className={`px-2.5 py-1 text-[11px] font-medium rounded-lg border ${
+                        isDark ? 'bg-zinc-900 border-zinc-800 text-zinc-300' : 'bg-zinc-100 border-zinc-200 text-zinc-700'
+                      }`}
+                    >
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Skill Gaps Card */}
           <div className={`p-6 sm:p-7 rounded-3xl border shadow-sm ${isDark ? 'bg-zinc-950/60 border-zinc-800' : 'bg-white border-zinc-200'}`}>
             <div className="flex items-center justify-between mb-4">
@@ -354,13 +631,15 @@ const Dashboard: React.FC = () => {
               {data?.weak_skills.map((skill, idx) => (
                 <span 
                   key={idx} 
-                  className={`px-3 py-1 text-xs font-semibold rounded-lg border transition-colors ${
+                  onClick={() => navigate('/quizzes')}
+                  title="Click to practice quiz on this topic"
+                  className={`px-3 py-1 text-xs font-semibold rounded-lg border cursor-pointer transition-all hover:scale-105 ${
                     isDark 
-                      ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' 
-                      : 'bg-rose-50 text-rose-700 border-rose-200'
+                      ? 'bg-rose-500/10 text-rose-400 border-rose-500/20 hover:bg-rose-500/20' 
+                      : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
                   }`}
                 >
-                  {skill}
+                  {skill} +
                 </span>
               ))}
             </div>
@@ -435,6 +714,146 @@ const Dashboard: React.FC = () => {
         </div>
 
       </div>
+
+      {/* INTERACTIVE READINESS SIMULATOR MODAL */}
+      {isSimulatorOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className={`relative max-w-xl w-full p-6 sm:p-8 rounded-3xl border shadow-2xl ${
+            isDark ? 'bg-zinc-950 border-zinc-800 text-zinc-100' : 'bg-white border-zinc-200 text-zinc-900'
+          }`}>
+            <button
+              onClick={() => setIsSimulatorOpen(false)}
+              className="absolute top-6 right-6 p-2 rounded-xl text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2.5 rounded-xl bg-green-500/10 text-green-500 border border-green-500/20">
+                <Sliders className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold">Placement Readiness Simulator</h3>
+                <p className={`text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                  Adjust component scores to see how your placement tier improves.
+                </p>
+              </div>
+            </div>
+
+            {/* Simulated Score Banner */}
+            <div className={`p-4 rounded-2xl border mb-6 flex items-center justify-between ${simGrade.bg} ${simGrade.border}`}>
+              <div>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-500 block">Simulated Score</span>
+                <span className="text-3xl font-black">{simulatedTotal}%</span>
+              </div>
+              <span className={`px-3 py-1 rounded-full text-xs font-black uppercase ${simGrade.color}`}>
+                {simGrade.grade}
+              </span>
+            </div>
+
+            {/* Sliders */}
+            <div className="space-y-4 text-xs font-bold">
+              <div>
+                <div className="flex justify-between mb-1.5">
+                  <span className="text-zinc-400">Resume ATS Score (30% weight)</span>
+                  <span className="text-emerald-500">{simAts}/100</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={simAts}
+                  onChange={(e) => setSimAts(Number(e.target.value))}
+                  className="w-full accent-emerald-500 cursor-pointer"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between mb-1.5">
+                  <span className="text-zinc-400">Quiz & Assessment Accuracy (25% weight)</span>
+                  <span className="text-blue-500">{simQuiz}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={simQuiz}
+                  onChange={(e) => setSimQuiz(Number(e.target.value))}
+                  className="w-full accent-blue-500 cursor-pointer"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between mb-1.5">
+                  <span className="text-zinc-400">Mock Interview Score (20% weight)</span>
+                  <span className="text-purple-500">{simInterview}/100</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={simInterview}
+                  onChange={(e) => setSimInterview(Number(e.target.value))}
+                  className="w-full accent-purple-500 cursor-pointer"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between mb-1.5">
+                  <span className="text-zinc-400">Project Quality Index (15% weight)</span>
+                  <span className="text-amber-500">{simProjects}/100</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={simProjects}
+                  onChange={(e) => setSimProjects(Number(e.target.value))}
+                  className="w-full accent-amber-500 cursor-pointer"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between mb-1.5">
+                  <span className="text-zinc-400">Skill Competency Index (10% weight)</span>
+                  <span className="text-teal-500">{simSkills}/100</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={simSkills}
+                  onChange={(e) => setSimSkills(Number(e.target.value))}
+                  className="w-full accent-teal-500 cursor-pointer"
+                />
+              </div>
+            </div>
+
+            <div className="mt-8 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setSimAts(data?.score_breakdown.resume_ats || 60);
+                  setSimQuiz(data?.score_breakdown.quiz_score || 50);
+                  setSimInterview(data?.score_breakdown.interview_score || 50);
+                  setSimProjects(data?.score_breakdown.project_score || 40);
+                  setSimSkills(data?.score_breakdown.skill_score || 50);
+                }}
+                className={`px-4 py-2.5 rounded-xl border text-xs font-bold ${
+                  isDark ? 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white' : 'bg-zinc-100 border-zinc-200 text-zinc-600'
+                }`}
+              >
+                Reset to Current
+              </button>
+              <button
+                onClick={() => setIsSimulatorOpen(false)}
+                className="px-6 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white text-xs font-bold transition-all shadow-md shadow-green-600/20"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
